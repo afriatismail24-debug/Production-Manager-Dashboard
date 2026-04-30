@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/"
+title = "Chef Production Tracker"
+version = "1.0.0"
+id = "artifacts/chef-track"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/" ]
+localPort = 24199
+
+[services.development]
+run = "pnpm --filter @workspace/chef-track run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/chef-track", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/chef-track", "run", "serve" ]
+
+[services.env]
+PORT = "24199"
+BASE_PATH = "/"

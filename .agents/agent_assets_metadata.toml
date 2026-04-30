@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "qSwAOpzjTPlcROXqXVeml"
+uri = "file://artifacts/chef-track/assets/images/icon.png"
+type = "image"
+title = "chef tracker app icon"
