@@ -7,14 +7,27 @@ const BASE = (() => {
   return "http://localhost:8080/api";
 })();
 
+let _joinCode: string | null = null;
+
+export function setApiWorkspaceCode(code: string | null) {
+  _joinCode = code;
+}
+
+export function getApiWorkspaceCode(): string | null {
+  return _joinCode;
+}
+
 async function request<T>(
   method: string,
   path: string,
   body?: unknown,
 ): Promise<T> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (_joinCode) headers["X-Workspace-Code"] = _joinCode;
+
   const res = await fetch(`${BASE}${path}`, {
     method,
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
@@ -32,46 +45,25 @@ async function request<T>(
 
 export const api = {
   workspace: {
-    get: () => request<WorkspaceInfo>("GET", "/workspace"),
+    byCode: (code: string) =>
+      request<WorkspaceInfo>("GET", `/workspace/by-code/${encodeURIComponent(code.trim().toUpperCase())}`),
     setup: (name: string, email: string, password: string) =>
-      request<{ ok: boolean; networkId: string }>("POST", "/workspace/setup", {
-        name,
-        email,
-        password,
-      }),
+      request<{ ok: boolean; joinCode: string }>("POST", "/workspace/setup", { name, email, password }),
     subscriptionSeen: () =>
       request<{ ok: boolean }>("POST", "/workspace/subscription-seen"),
     loginBoss: (email: string, password: string) =>
-      request<{ ok: boolean; name: string; email: string }>(
-        "POST",
-        "/workspace/login-boss",
-        { email, password },
-      ),
+      request<{ ok: boolean; name: string; email: string }>("POST", "/workspace/login-boss", { email, password }),
     loginChef: (email: string, password: string) =>
-      request<{ ok: boolean; chefId: string; name: string; email: string }>(
-        "POST",
-        "/workspace/login-chef",
-        { email, password },
-      ),
+      request<{ ok: boolean; chefId: string; name: string; email: string }>("POST", "/workspace/login-chef", { email, password }),
     resetRequest: (email: string) =>
-      request<{
-        ok: boolean;
-        emailSent: boolean;
-        emailConfigured: boolean;
-        code?: string;
-      }>("POST", "/workspace/reset-request", { email }),
+      request<{ ok: boolean; emailSent: boolean; emailConfigured: boolean; code?: string }>("POST", "/workspace/reset-request", { email }),
     resetConfirm: (code: string, newPassword: string) =>
-      request<{ ok: boolean }>("POST", "/workspace/reset-confirm", {
-        code,
-        newPassword,
-      }),
+      request<{ ok: boolean }>("POST", "/workspace/reset-confirm", { code, newPassword }),
   },
   chefs: {
     list: () => request<ChefData[]>("GET", "/chefs"),
-    add: (name: string, email: string) =>
-      request<ChefData>("POST", "/chefs", { name, email }),
-    remove: (id: string) =>
-      request<{ ok: boolean }>("DELETE", `/chefs/${id}`),
+    add: (name: string, email: string) => request<ChefData>("POST", "/chefs", { name, email }),
+    remove: (id: string) => request<{ ok: boolean }>("DELETE", `/chefs/${id}`),
   },
   sessions: {
     checkIn: (userId: string, role: string) =>
@@ -92,8 +84,7 @@ export const api = {
       request<ProductionData>("POST", "/productions", { chefId, chefName, items }),
     update: (id: string, items: ProductionItem[]) =>
       request<ProductionData>("PUT", `/productions/${id}`, { items }),
-    delete: (id: string) =>
-      request<{ ok: boolean }>("DELETE", `/productions/${id}`),
+    delete: (id: string) => request<{ ok: boolean }>("DELETE", `/productions/${id}`),
   },
   problems: {
     list: (opts?: { chefId?: string; today?: boolean }) => {
@@ -102,43 +93,26 @@ export const api = {
       if (opts?.today) q.set("today", "1");
       return request<ProblemData[]>("GET", `/problems?${q}`);
     },
-    submit: (
-      chefId: string,
-      chefName: string,
-      data: { type: string; note: string; stoppedAt: number; resumedAt: number },
-    ) =>
-      request<ProblemData>("POST", "/problems", {
-        chefId,
-        chefName,
-        ...data,
-      }),
-    update: (
-      id: string,
-      data: { type: string; note: string; stoppedAt: number; resumedAt: number },
-    ) => request<ProblemData>("PUT", `/problems/${id}`, data),
-    delete: (id: string) =>
-      request<{ ok: boolean }>("DELETE", `/problems/${id}`),
+    submit: (chefId: string, chefName: string, data: { type: string; note: string; stoppedAt: number; resumedAt: number }) =>
+      request<ProblemData>("POST", "/problems", { chefId, chefName, ...data }),
+    update: (id: string, data: { type: string; note: string; stoppedAt: number; resumedAt: number }) =>
+      request<ProblemData>("PUT", `/problems/${id}`, data),
+    delete: (id: string) => request<{ ok: boolean }>("DELETE", `/problems/${id}`),
   },
   objectives: {
     today: () => request<ObjectiveData[]>("GET", "/objectives/today"),
-    add: (texts: string[]) =>
-      request<ObjectiveData>("POST", "/objectives", { texts }),
-    remove: (id: string) =>
-      request<{ ok: boolean }>("DELETE", `/objectives/${id}`),
+    add: (texts: string[]) => request<ObjectiveData>("POST", "/objectives", { texts }),
+    remove: (id: string) => request<{ ok: boolean }>("DELETE", `/objectives/${id}`),
   },
   reminders: {
-    send: (message: string) =>
-      request<{ ok: boolean }>("POST", "/reminders", { message }),
-    unseen: (chefId: string) =>
-      request<ReminderData[]>("GET", `/reminders/unseen/${chefId}`),
-    markSeen: (chefId: string) =>
-      request<{ ok: boolean }>("POST", "/reminders/mark-seen", { chefId }),
+    send: (message: string) => request<{ ok: boolean }>("POST", "/reminders", { message }),
+    unseen: (chefId: string) => request<ReminderData[]>("GET", `/reminders/unseen/${chefId}`),
+    markSeen: (chefId: string) => request<{ ok: boolean }>("POST", "/reminders/mark-seen", { chefId }),
   },
   calls: {
     call: (chefId: string, chefName: string) =>
       request<{ ok: boolean }>("POST", "/calls", { chefId, chefName }),
-    unseen: (chefId: string) =>
-      request<CallData | null>("GET", `/calls/unseen/${chefId}`),
+    unseen: (chefId: string) => request<CallData | null>("GET", `/calls/unseen/${chefId}`),
     acknowledge: (chefId: string) =>
       request<{ ok: boolean }>("POST", `/calls/acknowledge/${chefId}`),
   },
@@ -148,7 +122,7 @@ export const api = {
 
 export interface WorkspaceInfo {
   exists: boolean;
-  networkId: string;
+  joinCode: string;
   bossName?: string;
   bossEmail?: string;
   subscriptionSeen?: boolean;

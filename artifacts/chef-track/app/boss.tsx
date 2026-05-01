@@ -1,3 +1,4 @@
+import * as Clipboard from "expo-clipboard";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -37,6 +38,14 @@ export default function BossDashboard() {
   const router = useRouter();
   const app = useApp();
   const now = useNow(1000);
+  const [codeCopied, setCodeCopied] = useState(false);
+
+  const handleCopyCode = async () => {
+    if (!app.joinCode) return;
+    await Clipboard.setStringAsync(app.joinCode);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2000);
+  };
 
   const bossWs = app.currentWorkSession("boss");
   const todayObjectives = app.todayObjectives();
@@ -116,6 +125,25 @@ export default function BossDashboard() {
             <Feather name="log-out" size={18} color="#cbd5e1" />
           </Pressable>
         </View>
+
+        {app.joinCode ? (
+          <Pressable
+            onPress={handleCopyCode}
+            style={styles.codeBar}
+          >
+            <Feather name="users" size={13} color="#f97316" />
+            <Text style={styles.codeBarLabel}>Join code:</Text>
+            <Text style={styles.codeBarValue}>{app.joinCode}</Text>
+            <Feather
+              name={codeCopied ? "check" : "copy"}
+              size={13}
+              color={codeCopied ? "#4ade80" : "#94a3b8"}
+            />
+            <Text style={{ color: codeCopied ? "#4ade80" : "#64748b", fontFamily: "Inter_400Regular", fontSize: 11 }}>
+              {codeCopied ? "Copied!" : "Tap to copy"}
+            </Text>
+          </Pressable>
+        ) : null}
 
         <View style={styles.shiftCard}>
           <View style={{ flex: 1 }}>
@@ -599,8 +627,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  codeBar: {
+    marginTop: 16,
+    marginHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    backgroundColor: "rgba(249,115,22,0.08)",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: "rgba(249,115,22,0.2)",
+  },
+  codeBarLabel: {
+    color: "#94a3b8",
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
+  },
+  codeBarValue: {
+    color: "white",
+    fontFamily: "Inter_700Bold",
+    fontSize: 15,
+    letterSpacing: 2,
+    flex: 1,
+  },
   shiftCard: {
-    marginTop: 22,
+    marginTop: 16,
     marginHorizontal: 20,
     backgroundColor: "rgba(255,255,255,0.06)",
     borderRadius: 16,

@@ -18,12 +18,13 @@ import {
   ProductionData,
   ProductionItem,
   ReminderData,
+  setApiWorkspaceCode,
   SyncData,
   WorkSessionData,
 } from "@/lib/api";
 
-const SESSION_KEY = "@chef_session_v2";
-const NETWORK_KEY = "@chef_network_v2";
+const SESSION_KEY = "@chef_session_v3";
+const JOIN_CODE_KEY = "@chef_join_code_v3";
 const POLL_INTERVAL = 5000;
 
 export const EDIT_WINDOW_MS = 15 * 60 * 1000;
@@ -41,9 +42,7 @@ export interface Session {
 
 interface AppContextValue {
   loaded: boolean;
-  networkId: string | null;
-  networkChanged: boolean;
-
+  joinCode: string | null;
   boss: { name: string; email: string } | null;
   subscriptionSeen: boolean;
   session: Session | null;
@@ -57,11 +56,12 @@ interface AppContextValue {
   calls: CallData[];
 
   setupBoss: (name: string, email: string, password: string) => Promise<void>;
+  joinWorkspace: (code: string) => Promise<WorkspaceJoinResult>;
   markSubscriptionSeen: () => Promise<void>;
   loginBoss: (email: string, password: string) => Promise<boolean>;
   loginChef: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  acceptNetworkChange: () => Promise<void>;
+  leaveWorkspace: () => Promise<void>;
 
   addChef: (name: string, email: string) => Promise<ChefData>;
   removeChef: (id: string) => Promise<void>;
@@ -73,23 +73,12 @@ interface AppContextValue {
   checkOut: (userId: string) => Promise<WorkSessionData | null>;
   currentWorkSession: (userId: string) => WorkSessionData | null;
 
-  submitProduction: (
-    chefId: string,
-    chefName: string,
-    items: ProductionItem[],
-  ) => Promise<void>;
+  submitProduction: (chefId: string, chefName: string, items: ProductionItem[]) => Promise<void>;
   updateProduction: (id: string, items: ProductionItem[]) => Promise<void>;
   deleteProduction: (id: string) => Promise<void>;
 
-  submitProblem: (
-    chefId: string,
-    chefName: string,
-    data: { type: string; note: string; stoppedAt: number; resumedAt: number },
-  ) => Promise<void>;
-  updateProblem: (
-    id: string,
-    data: { type: string; note: string; stoppedAt: number; resumedAt: number },
-  ) => Promise<void>;
+  submitProblem: (chefId: string, chefName: string, data: { type: string; note: string; stoppedAt: number; resumedAt: number }) => Promise<void>;
+  updateProblem: (id: string, data: { type: string; note: string; stoppedAt: number; resumedAt: number }) => Promise<void>;
   deleteProblem: (id: string) => Promise<void>;
 
   sendReminder: (message: string) => Promise<void>;
@@ -110,24 +99,26 @@ interface AppContextValue {
   refetch: () => Promise<void>;
 }
 
+export interface WorkspaceJoinResult {
+  ok: boolean;
+  bossName?: string;
+  error?: string;
+}
+
 const AppContext = createContext<AppContextValue | null>(null);
+
+const emptySyncData: SyncData = {
+  chefs: [], workSessions: [], productions: [], problems: [],
+  objectives: [], reminders: [], calls: [],
+};
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [loaded, setLoaded] = useState(false);
-  const [networkId, setNetworkId] = useState<string | null>(null);
-  const [networkChanged, setNetworkChanged] = useState(false);
+  const [joinCode, setJoinCode] = useState<string | null>(null);
   const [boss, setBoss] = useState<{ name: string; email: string } | null>(null);
   const [subscriptionSeen, setSubscriptionSeen] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
-  const [syncData, setSyncData] = useState<SyncData>({
-    chefs: [],
-    workSessions: [],
-    productions: [],
-    problems: [],
-    objectives: [],
-    reminders: [],
-    calls: [],
-  });
+  const [syncData, setSyncData] = useState<SyncData>(emptySyncData);
 
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -155,44 +146,44 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const [savedSession, savedNetwork] = await Promise.all([
+        const [savedSession, savedCode] = await Promise.all([
           AsyncStorage.getItem(SESSION_KEY),
-          AsyncStorage.getItem(NETWORK_KEY),
+          AsyncStorage.getItem(JOIN_CODE_KEY),
         ]);
 
-        const info = await api.workspace.get();
-        const currentNetworkId = info.networkId;
-
-        if (savedNetwork && savedNetwork !== currentNetworkId) {
-          await AsyncStorage.removeItem(SESSION_KEY);
-          setNetworkChanged(true);
-          setNetworkId(currentNetworkId);
-          setLoaded(true);
-          return;
+        if (savedCode) {
+          setApiWorkspaceCode(savedCode);
+          setJoinCode(savedCode);
+          try {
+            const info = await api.workspace.byCode(savedCode);
+            setBoss({ name: info.bossName!, email: info.bossEmail! });
+            setSubscriptionSeen(info.subscriptionSeen ?? false);
+          } catch {
+            // workspace not found — clear code
+            await AsyncStorage.removeItem(JOIN_CODE_KEY);
+            await AsyncStorage.removeItem(SESSION_KEY);
+            setApiWorkspaceCode(null);
+            setJoinCode(null);
+            setLoaded(true);
+            return;
+          }
         }
 
-        await AsyncStorage.setItem(NETWORK_KEY, currentNetworkId);
-        setNetworkId(currentNetworkId);
-
-        if (info.exists) {
-          setBoss({ name: info.bossName!, email: info.bossEmail! });
-          setSubscriptionSeen(info.subscriptionSeen ?? false);
-        }
-
-        if (savedSession) {
+        if (savedSession && savedCode) {
           const s: Session = JSON.parse(savedSession);
           setSession(s);
-          startPolling();
           await doSync();
+          startPolling();
         }
       } catch {
-        // offline or server down — load minimal state
+        // offline — keep minimal state
       } finally {
         setLoaded(true);
       }
     })();
 
     return () => stopPolling();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -202,16 +193,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } else {
       stopPolling();
     }
-  }, [session]);
+  }, [session, startPolling, stopPolling, doSync]);
 
   const setupBoss = useCallback(async (name: string, email: string, password: string) => {
     const r = await api.workspace.setup(name, email, password);
-    await AsyncStorage.setItem(NETWORK_KEY, r.networkId);
-    setNetworkId(r.networkId);
+    setApiWorkspaceCode(r.joinCode);
+    await AsyncStorage.setItem(JOIN_CODE_KEY, r.joinCode);
+    setJoinCode(r.joinCode);
     setBoss({ name, email });
     const s: Session = { role: "boss", userId: "boss", bossName: name, bossEmail: email };
     setSession(s);
     await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(s));
+  }, []);
+
+  const joinWorkspace = useCallback(async (code: string): Promise<WorkspaceJoinResult> => {
+    const trimmed = code.trim().toUpperCase();
+    try {
+      setApiWorkspaceCode(trimmed);
+      const info = await api.workspace.byCode(trimmed);
+      await AsyncStorage.setItem(JOIN_CODE_KEY, trimmed);
+      setJoinCode(trimmed);
+      setBoss({ name: info.bossName!, email: info.bossEmail! });
+      setSubscriptionSeen(info.subscriptionSeen ?? false);
+      return { ok: true, bossName: info.bossName };
+    } catch {
+      setApiWorkspaceCode(null);
+      return { ok: false, error: "Workspace not found. Check the code and try again." };
+    }
   }, []);
 
   const markSubscriptionSeen = useCallback(async () => {
@@ -249,19 +257,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSession(null);
   }, []);
 
-  const acceptNetworkChange = useCallback(async () => {
-    try {
-      const info = await api.workspace.get();
-      await AsyncStorage.setItem(NETWORK_KEY, info.networkId);
-      setNetworkId(info.networkId);
-      setNetworkChanged(false);
-      setSession(null);
-      setBoss(null);
-      setSubscriptionSeen(false);
-      setSyncData({ chefs: [], workSessions: [], productions: [], problems: [], objectives: [], reminders: [], calls: [] });
-    } catch {
-      setNetworkChanged(false);
-    }
+  const leaveWorkspace = useCallback(async () => {
+    await AsyncStorage.multiRemove([SESSION_KEY, JOIN_CODE_KEY]);
+    setApiWorkspaceCode(null);
+    setJoinCode(null);
+    setSession(null);
+    setBoss(null);
+    setSubscriptionSeen(false);
+    setSyncData(emptySyncData);
   }, []);
 
   const addChef = useCallback(async (name: string, email: string) => {
@@ -301,9 +304,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [doSync]);
 
   const currentWorkSession = useCallback(
-    (userId: string) => {
-      return syncData.workSessions.find((w) => w.userId === userId && w.checkOutAt === null) ?? null;
-    },
+    (userId: string) =>
+      syncData.workSessions.find((w) => w.userId === userId && w.checkOutAt === null) ?? null,
     [syncData.workSessions],
   );
 
@@ -322,19 +324,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await doSync();
   }, [doSync]);
 
-  const submitProblem = useCallback(async (
-    chefId: string,
-    chefName: string,
-    data: { type: string; note: string; stoppedAt: number; resumedAt: number },
-  ) => {
+  const submitProblem = useCallback(async (chefId: string, chefName: string, data: { type: string; note: string; stoppedAt: number; resumedAt: number }) => {
     await api.problems.submit(chefId, chefName, data);
     await doSync();
   }, [doSync]);
 
-  const updateProblem = useCallback(async (
-    id: string,
-    data: { type: string; note: string; stoppedAt: number; resumedAt: number },
-  ) => {
+  const updateProblem = useCallback(async (id: string, data: { type: string; note: string; stoppedAt: number; resumedAt: number }) => {
     await api.problems.update(id, data);
     await doSync();
   }, [doSync]);
@@ -360,9 +355,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const unseenRemindersForChef = useCallback(
-    (chefId: string) => {
-      return syncData.reminders.filter((r) => !r.seenBy.includes(chefId));
-    },
+    (chefId: string) => syncData.reminders.filter((r) => !r.seenBy.includes(chefId)),
     [syncData.reminders],
   );
 
@@ -372,9 +365,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [doSync]);
 
   const unseenCallForChef = useCallback(
-    (chefId: string) => {
-      return syncData.calls.find((c) => c.chefId === chefId && !c.seen) ?? null;
-    },
+    (chefId: string) =>
+      syncData.calls.find((c) => c.chefId === chefId && !c.seen) ?? null,
     [syncData.calls],
   );
 
@@ -399,71 +391,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 
   const todayObjectives = useCallback(() => syncData.objectives, [syncData.objectives]);
-
   const todayProductionsAll = useCallback(() => syncData.productions, [syncData.productions]);
-
   const todayProblemsAll = useCallback(() => syncData.problems, [syncData.problems]);
-
   const todayWorkSessionsAll = useCallback(() => syncData.workSessions, [syncData.workSessions]);
 
   const value = useMemo<AppContextValue>(
     () => ({
-      loaded,
-      networkId,
-      networkChanged,
-      boss,
-      subscriptionSeen,
-      session,
-      chefs: syncData.chefs,
-      workSessions: syncData.workSessions,
-      productions: syncData.productions,
-      problems: syncData.problems,
-      objectives: syncData.objectives,
-      reminders: syncData.reminders,
-      calls: syncData.calls,
-      setupBoss,
-      markSubscriptionSeen,
-      loginBoss,
-      loginChef,
-      logout,
-      acceptNetworkChange,
-      addChef,
-      removeChef,
-      addObjective,
-      removeObjective,
-      checkIn,
-      checkOut,
-      currentWorkSession,
-      submitProduction,
-      updateProduction,
-      deleteProduction,
-      submitProblem,
-      updateProblem,
-      deleteProblem,
-      sendReminder,
-      markRemindersSeen,
-      unseenRemindersForChef,
-      callChef,
-      unseenCallForChef,
-      acknowledgeCall,
-      productionsForChef,
-      problemsForChef,
-      todayObjectives,
-      todayProductionsAll,
-      todayProblemsAll,
-      todayWorkSessionsAll,
+      loaded, joinCode, boss, subscriptionSeen, session,
+      chefs: syncData.chefs, workSessions: syncData.workSessions, productions: syncData.productions,
+      problems: syncData.problems, objectives: syncData.objectives, reminders: syncData.reminders, calls: syncData.calls,
+      setupBoss, joinWorkspace, markSubscriptionSeen, loginBoss, loginChef, logout, leaveWorkspace,
+      addChef, removeChef, addObjective, removeObjective,
+      checkIn, checkOut, currentWorkSession,
+      submitProduction, updateProduction, deleteProduction,
+      submitProblem, updateProblem, deleteProblem,
+      sendReminder, markRemindersSeen, unseenRemindersForChef, callChef, unseenCallForChef, acknowledgeCall,
+      productionsForChef, problemsForChef,
+      todayObjectives, todayProductionsAll, todayProblemsAll, todayWorkSessionsAll,
       refetch: doSync,
     }),
-    [
-      loaded, networkId, networkChanged, boss, subscriptionSeen, session, syncData,
-      setupBoss, markSubscriptionSeen, loginBoss, loginChef, logout, acceptNetworkChange,
-      addChef, removeChef, addObjective, removeObjective, checkIn, checkOut,
-      currentWorkSession, submitProduction, updateProduction, deleteProduction,
-      submitProblem, updateProblem, deleteProblem, sendReminder, markRemindersSeen,
-      unseenRemindersForChef, callChef, unseenCallForChef, acknowledgeCall,
-      productionsForChef, problemsForChef, todayObjectives, todayProductionsAll,
-      todayProblemsAll, todayWorkSessionsAll, doSync,
-    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [loaded, joinCode, boss, subscriptionSeen, session, syncData],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

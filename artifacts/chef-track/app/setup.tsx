@@ -62,8 +62,8 @@ export default function Setup() {
         </View>
         <Text style={styles.heroTitle}>Welcome to ChefTrack</Text>
         <Text style={styles.heroSub}>
-          You're setting this up as the boss. These credentials are saved on this
-          device and will be used every time you sign in.
+          Create a workspace for your kitchen. After setup, you'll get a join
+          code — share it with your team so they can connect from their devices.
         </Text>
       </LinearGradient>
 
