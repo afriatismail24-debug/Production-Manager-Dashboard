@@ -121,15 +121,53 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [syncData, setSyncData] = useState<SyncData>(emptySyncData);
 
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const knownReminderIds = useRef<Set<string>>(new Set());
+  const knownCallIds = useRef<Set<string>>(new Set());
+  const sessionRef = useRef<Session | null>(null);
+
+  useEffect(() => { sessionRef.current = session; }, [session]);
+
+  const fireWebNotification = useCallback((title: string, body: string) => {
+    if (typeof window === "undefined") return;
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "granted") {
+      new Notification(title, { body, icon: "/icon.png" });
+    } else if (Notification.permission === "default") {
+      Notification.requestPermission().then((perm) => {
+        if (perm === "granted") new Notification(title, { body, icon: "/icon.png" });
+      });
+    }
+  }, []);
 
   const doSync = useCallback(async () => {
     try {
       const data = await api.sync(true);
+      const sess = sessionRef.current;
+
+      if (sess?.role === "chef" && sess.chefId) {
+        const chefId = sess.chefId;
+        const unseenReminders = data.reminders.filter(
+          (r) => !r.seenBy.includes(chefId) && !knownReminderIds.current.has(r.id),
+        );
+        unseenReminders.forEach((r) => {
+          fireWebNotification("📋 Reminder from Boss", r.message);
+          knownReminderIds.current.add(r.id);
+        });
+
+        const newCalls = data.calls.filter(
+          (c) => c.chefId === chefId && !c.seen && !knownCallIds.current.has(c.id),
+        );
+        newCalls.forEach((c) => {
+          fireWebNotification("📞 Boss is calling!", `${c.chefName}, the boss wants to speak with you.`);
+          knownCallIds.current.add(c.id);
+        });
+      }
+
       setSyncData(data);
     } catch {
       // silently ignore poll errors
     }
-  }, []);
+  }, [fireWebNotification]);
 
   const startPolling = useCallback(() => {
     if (pollTimer.current) return;

@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { ShareCodeModal } from "@/components/ShareCodeModal";
 import { SectionHeader } from "@/components/SectionHeader";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
@@ -39,6 +40,7 @@ export default function BossDashboard() {
   const app = useApp();
   const now = useNow(1000);
   const [codeCopied, setCodeCopied] = useState(false);
+  const [showShare, setShowShare] = useState(false);
 
   const handleCopyCode = async () => {
     if (!app.joinCode) return;
@@ -127,22 +129,36 @@ export default function BossDashboard() {
         </View>
 
         {app.joinCode ? (
-          <Pressable
-            onPress={handleCopyCode}
-            style={styles.codeBar}
-          >
-            <Feather name="users" size={13} color="#f97316" />
-            <Text style={styles.codeBarLabel}>Join code:</Text>
-            <Text style={styles.codeBarValue}>{app.joinCode}</Text>
-            <Feather
-              name={codeCopied ? "check" : "copy"}
-              size={13}
-              color={codeCopied ? "#4ade80" : "#94a3b8"}
+          <>
+            <Pressable
+              onPress={handleCopyCode}
+              style={styles.codeBar}
+            >
+              <Feather name="users" size={13} color="#f97316" />
+              <Text style={styles.codeBarLabel}>Join code:</Text>
+              <Text style={styles.codeBarValue}>{app.joinCode}</Text>
+              <Feather
+                name={codeCopied ? "check" : "copy"}
+                size={13}
+                color={codeCopied ? "#4ade80" : "#94a3b8"}
+              />
+              <Pressable
+                onPress={() => setShowShare(true)}
+                hitSlop={8}
+                style={styles.shareBtn}
+              >
+                <Feather name="share-2" size={13} color="#f97316" />
+                <Text style={{ color: "#f97316", fontFamily: "Inter_600SemiBold", fontSize: 11 }}>
+                  Share
+                </Text>
+              </Pressable>
+            </Pressable>
+            <ShareCodeModal
+              visible={showShare}
+              joinCode={app.joinCode}
+              onClose={() => setShowShare(false)}
             />
-            <Text style={{ color: codeCopied ? "#4ade80" : "#64748b", fontFamily: "Inter_400Regular", fontSize: 11 }}>
-              {codeCopied ? "Copied!" : "Tap to copy"}
-            </Text>
-          </Pressable>
+          </>
         ) : null}
 
         <View style={styles.shiftCard}>
@@ -651,6 +667,16 @@ const styles = StyleSheet.create({
     fontSize: 15,
     letterSpacing: 2,
     flex: 1,
+  },
+  shareBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(249,115,22,0.15)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    marginLeft: 4,
   },
   shiftCard: {
     marginTop: 16,
