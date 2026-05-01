@@ -49,6 +49,8 @@ function RootLayoutNav() {
         name="reminder"
         options={{ presentation: "modal", headerShown: false }}
       />
+      <Stack.Screen name="network-changed" />
+      <Stack.Screen name="reset" />
     </Stack>
   );
 }

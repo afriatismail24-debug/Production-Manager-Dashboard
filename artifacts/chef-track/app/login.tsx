@@ -28,15 +28,21 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setError(null);
-    const ok =
-      mode === "boss"
-        ? loginBoss(email, password)
-        : loginChef(email, password);
-    if (!ok) return setError("Email or password is incorrect.");
-    router.replace(mode === "boss" ? "/boss" : "/chef");
+    setLoading(true);
+    try {
+      const ok =
+        mode === "boss"
+          ? await loginBoss(email, password)
+          : await loginChef(email, password);
+      if (!ok) return setError("Email or password is incorrect.");
+      router.replace(mode === "boss" ? "/boss" : "/chef");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const webTop = Platform.OS === "web" ? 67 : 0;
@@ -137,12 +143,23 @@ export default function Login() {
           label="Sign in"
           icon="log-in"
           onPress={handleLogin}
+          loading={loading}
           fullWidth
           size="lg"
           style={{ marginTop: 22 }}
         />
 
-        {mode === "chef" ? (
+        {mode === "boss" ? (
+          <Pressable
+            onPress={() => router.push("/reset")}
+            hitSlop={10}
+            style={{ marginTop: 16, alignItems: "center" }}
+          >
+            <Text style={{ color: colors.primary, fontFamily: "Inter_500Medium", fontSize: 13 }}>
+              Forgot password?
+            </Text>
+          </Pressable>
+        ) : (
           <Text
             style={{
               color: colors.mutedForeground,
@@ -156,7 +173,7 @@ export default function Login() {
             Your password was assigned by the boss when your account was created.
             Ask them if you don't remember it.
           </Text>
-        ) : null}
+        )}
       </KeyboardAwareScrollView>
     </View>
   );

@@ -6,24 +6,18 @@ import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 
 export default function Index() {
-  const { loaded, boss, subscriptionSeen, session } = useApp();
+  const { loaded, networkChanged, boss, subscriptionSeen, session } = useApp();
   const colors = useColors();
 
   if (!loaded) {
     return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: colors.background,
-        }}
-      >
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background }}>
         <ActivityIndicator color={colors.primary} />
       </View>
     );
   }
 
+  if (networkChanged) return <Redirect href="/network-changed" />;
   if (!boss) return <Redirect href="/setup" />;
   if (!subscriptionSeen) return <Redirect href="/subscription" />;
   if (!session) return <Redirect href="/login" />;

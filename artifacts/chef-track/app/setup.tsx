@@ -28,6 +28,7 @@ export default function Setup() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleCreate = async () => {
     setError(null);
@@ -36,9 +37,15 @@ export default function Setup() {
       return setError("Enter a valid email.");
     if (password.length < 4) return setError("Password must be 4+ characters.");
     if (password !== confirm) return setError("Passwords do not match.");
-
-    await setupBoss({ name: name.trim(), email: email.trim(), password });
-    router.replace("/subscription");
+    setLoading(true);
+    try {
+      await setupBoss(name.trim(), email.trim(), password);
+      router.replace("/subscription");
+    } catch (err: unknown) {
+      setError((err as Error).message ?? "Setup failed. Try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const webTop = Platform.OS === "web" ? 67 : 0;
@@ -105,6 +112,7 @@ export default function Setup() {
           label="Create boss account"
           icon="arrow-right"
           onPress={handleCreate}
+          loading={loading}
           fullWidth
           size="lg"
           style={{ marginTop: 24 }}
