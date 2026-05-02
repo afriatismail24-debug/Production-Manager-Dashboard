@@ -44,15 +44,15 @@ export function Button({
   const palette = (() => {
     switch (variant) {
       case "primary":
-        return { bg: colors.primary, fg: colors.primaryForeground, border: colors.primary };
+        return { bg: colors.primary, fg: colors.primaryForeground, border: colors.primary, ripple: "rgba(255,255,255,0.25)" };
       case "secondary":
-        return { bg: colors.secondary, fg: colors.secondaryForeground, border: colors.secondary };
+        return { bg: colors.secondary, fg: colors.secondaryForeground, border: colors.secondary, ripple: "rgba(255,255,255,0.2)" };
       case "outline":
-        return { bg: "transparent", fg: colors.foreground, border: colors.border };
+        return { bg: "transparent", fg: colors.foreground, border: colors.border, ripple: "rgba(0,0,0,0.08)" };
       case "ghost":
-        return { bg: "transparent", fg: colors.foreground, border: "transparent" };
+        return { bg: "transparent", fg: colors.foreground, border: "transparent", ripple: "rgba(0,0,0,0.06)" };
       case "destructive":
-        return { bg: colors.destructive, fg: colors.destructiveForeground, border: colors.destructive };
+        return { bg: colors.destructive, fg: colors.destructiveForeground, border: colors.destructive, ripple: "rgba(255,255,255,0.25)" };
     }
   })();
 
@@ -74,6 +74,11 @@ export function Button({
       testID={testID}
       onPress={handlePress}
       disabled={disabled || loading}
+      android_ripple={
+        Platform.OS === "android"
+          ? { color: palette.ripple, borderless: false }
+          : undefined
+      }
       style={({ pressed }) => [
         styles.btn,
         {
@@ -82,7 +87,8 @@ export function Button({
           paddingVertical: padV,
           paddingHorizontal: padH,
           borderRadius: colors.radius,
-          opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+          opacity: disabled ? 0.5 : (pressed && Platform.OS !== "android") ? 0.82 : 1,
+          transform: pressed && Platform.OS !== "android" ? [{ scale: 0.97 }] : [],
           width: fullWidth ? "100%" : undefined,
         },
         style,
@@ -111,6 +117,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     borderWidth: 1,
+    overflow: "hidden",
   },
   label: {
     fontFamily: "Inter_600SemiBold",

@@ -289,7 +289,7 @@ export default function ChefDashboard() {
           <SectionHeader
             title="Today's objectives"
             icon="target"
-            subtitle="Set by the boss"
+            subtitle="Set by the manager"
           />
           <View style={{ marginTop: 12, gap: 8 }}>
             {todayObjectives.flatMap((o) => o.texts).length === 0 ? (
