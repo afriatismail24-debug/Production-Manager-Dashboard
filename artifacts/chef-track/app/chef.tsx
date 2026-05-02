@@ -7,6 +7,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   View,
@@ -36,6 +37,7 @@ export default function ChefDashboard() {
   const router = useRouter();
   const app = useApp();
   const now = useNow(1000);
+  const [checkingIn, setCheckingIn] = useState(false);
 
   const chef = app.chefs.find((c) => c.id === app.session?.userId);
   const ws = chef ? app.currentWorkSession(chef.id) : null;
@@ -78,11 +80,23 @@ export default function ChefDashboard() {
   };
 
   const handleCheckIn = async () => {
-    await app.checkIn(chef.id, "chef");
+    if (checkingIn) return;
+    setCheckingIn(true);
+    try {
+      await app.checkIn(chef.id, "chef");
+    } finally {
+      setCheckingIn(false);
+    }
   };
 
   const handleCheckOut = async () => {
-    await app.checkOut(chef.id);
+    if (checkingIn) return;
+    setCheckingIn(true);
+    try {
+      await app.checkOut(chef.id);
+    } finally {
+      setCheckingIn(false);
+    }
   };
 
   const webTop = Platform.OS === "web" ? 67 : 0;
@@ -90,6 +104,7 @@ export default function ChefDashboard() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <StatusBar barStyle="light-content" backgroundColor="#f97316" />
       <LinearGradient
         colors={["#f97316", "#ea580c"]}
         style={{ paddingTop: insets.top + webTop + 12, paddingBottom: 24 }}
@@ -120,17 +135,19 @@ export default function ChefDashboard() {
           </View>
           {ws ? (
             <Button
-              label="Check out"
+              label={checkingIn ? "Saving…" : "Check out"}
               icon="log-out"
               variant="secondary"
               onPress={handleCheckOut}
+              disabled={checkingIn}
             />
           ) : (
             <Button
-              label="Check in"
+              label={checkingIn ? "Checking in…" : "Check in"}
               icon="log-in"
               variant="secondary"
               onPress={handleCheckIn}
+              disabled={checkingIn}
             />
           )}
         </View>

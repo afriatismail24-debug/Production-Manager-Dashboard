@@ -127,18 +127,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { sessionRef.current = session; }, [session]);
 
-  const fireWebNotification = useCallback((title: string, body: string) => {
-    if (typeof window === "undefined") return;
-    if (!("Notification" in window)) return;
-    if (Notification.permission === "granted") {
-      new Notification(title, { body, icon: "/icon.png" });
-    } else if (Notification.permission === "default") {
-      Notification.requestPermission().then((perm) => {
-        if (perm === "granted") new Notification(title, { body, icon: "/icon.png" });
-      });
-    }
-  }, []);
-
   const doSync = useCallback(async () => {
     try {
       const data = await api.sync(true);
@@ -146,11 +134,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       if (sess?.role === "chef" && sess.chefId) {
         const chefId = sess.chefId;
+        const { emitToast } = await import("@/lib/toastEmitter");
+
         const unseenReminders = data.reminders.filter(
           (r) => !r.seenBy.includes(chefId) && !knownReminderIds.current.has(r.id),
         );
         unseenReminders.forEach((r) => {
-          fireWebNotification("📋 Reminder from Boss", r.message);
+          emitToast({ title: "Reminder from boss", message: r.message, type: "reminder" });
           knownReminderIds.current.add(r.id);
         });
 
@@ -158,7 +148,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           (c) => c.chefId === chefId && !c.seen && !knownCallIds.current.has(c.id),
         );
         newCalls.forEach((c) => {
-          fireWebNotification("📞 Boss is calling!", `${c.chefName}, the boss wants to speak with you.`);
+          emitToast({ title: "Boss is calling you!", message: "Please come to the office now.", type: "call", duration: 8000 });
           knownCallIds.current.add(c.id);
         });
       }
@@ -167,7 +157,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // silently ignore poll errors
     }
-  }, [fireWebNotification]);
+  }, []);
 
   const startPolling = useCallback(() => {
     if (pollTimer.current) return;

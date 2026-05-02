@@ -8,6 +8,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   View,
@@ -41,6 +42,7 @@ export default function BossDashboard() {
   const now = useNow(1000);
   const [codeCopied, setCodeCopied] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [checkingIn, setCheckingIn] = useState(false);
 
   const handleCopyCode = async () => {
     if (!app.joinCode) return;
@@ -74,29 +76,36 @@ export default function BossDashboard() {
   );
 
   const handleCheckIn = async () => {
-    await app.checkIn("boss", "boss");
+    if (checkingIn) return;
+    setCheckingIn(true);
+    try { await app.checkIn("boss", "boss"); } finally { setCheckingIn(false); }
   };
 
   const handleCheckOut = async () => {
-    await app.checkOut("boss");
-
-    const date = new Date();
-    const allChefs = app.chefs;
+    if (checkingIn) return;
+    setCheckingIn(true);
     try {
-      await generateAndSharePdf({
-        bossName: app.boss?.name ?? "Boss",
-        date,
-        chefs: allChefs,
-        objectives: app.todayObjectives(),
-        workSessions: app.todayWorkSessionsAll(),
-        productions: app.todayProductionsAll(),
-        problems: app.todayProblemsAll(),
-        bossSession: app.workSessions.find(
-          (w) => w.userId === "boss" && w.checkOutAt !== null,
-        ) ?? null,
-      });
-    } catch (err) {
-      Alert.alert("Could not export PDF", String(err));
+      await app.checkOut("boss");
+      const date = new Date();
+      const allChefs = app.chefs;
+      try {
+        await generateAndSharePdf({
+          bossName: app.boss?.name ?? "Boss",
+          date,
+          chefs: allChefs,
+          objectives: app.todayObjectives(),
+          workSessions: app.todayWorkSessionsAll(),
+          productions: app.todayProductionsAll(),
+          problems: app.todayProblemsAll(),
+          bossSession: app.workSessions.find(
+            (w) => w.userId === "boss" && w.checkOutAt !== null,
+          ) ?? null,
+        });
+      } catch (err) {
+        Alert.alert("Could not export PDF", String(err));
+      }
+    } finally {
+      setCheckingIn(false);
     }
   };
 
@@ -110,6 +119,7 @@ export default function BossDashboard() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <StatusBar barStyle="light-content" backgroundColor="#1e293b" />
       <LinearGradient
         colors={["#1e293b", "#0f172a"]}
         style={{ paddingTop: insets.top + webTop + 12, paddingBottom: 24 }}
@@ -177,16 +187,18 @@ export default function BossDashboard() {
           </View>
           {bossWs ? (
             <Button
-              label="Check out"
+              label={checkingIn ? "Saving…" : "Check out"}
               icon="log-out"
               variant="destructive"
               onPress={handleCheckOut}
+              disabled={checkingIn}
             />
           ) : (
             <Button
-              label="Check in"
+              label={checkingIn ? "Checking in…" : "Check in"}
               icon="log-in"
               onPress={handleCheckIn}
+              disabled={checkingIn}
             />
           )}
         </View>

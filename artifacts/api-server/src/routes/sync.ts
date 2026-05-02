@@ -16,7 +16,7 @@ router.get("/sync", async (req, res) => {
     pool.query("SELECT id, name, email, password, chef_order, created_at FROM chefs WHERE join_code=$1 ORDER BY chef_order ASC", [code]),
     pool.query(
       today === "1"
-        ? "SELECT * FROM work_sessions WHERE join_code=$1 AND check_in_at >= $2 ORDER BY check_in_at DESC"
+        ? "SELECT * FROM work_sessions WHERE join_code=$1 AND (check_in_at >= $2 OR check_out_at IS NULL) ORDER BY check_in_at DESC"
         : "SELECT * FROM work_sessions WHERE join_code=$1 ORDER BY check_in_at DESC LIMIT 200",
       today === "1" ? [code, startTs] : [code],
     ),
