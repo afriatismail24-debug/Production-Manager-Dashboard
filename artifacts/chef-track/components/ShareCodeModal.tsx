@@ -90,10 +90,10 @@ export function ShareCodeModal({ visible, joinCode, onClose }: Props) {
 
           <View style={[styles.steps, { backgroundColor: colors.muted, borderRadius: 14, padding: 14 }]}>
             {[
-              "Open ChefTrack on their phone or device",
+              "Open StitchTrack on their phone or device",
               'Tap "Join a workspace" on the welcome screen',
               "Scan this QR code or type the code above",
-              "Then sign in with their chef credentials",
+              "Then sign in with their operator credentials",
             ].map((s, i) => (
               <View key={i} style={styles.step}>
                 <View style={[styles.stepNum, { backgroundColor: colors.primary }]}>

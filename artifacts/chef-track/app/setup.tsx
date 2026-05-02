@@ -4,7 +4,6 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -58,11 +57,11 @@ export default function Setup() {
         style={[styles.hero, { paddingTop: insets.top + webTop + 24 }]}
       >
         <View style={styles.heroIcon}>
-          <Feather name="award" size={28} color="#f97316" />
+          <Feather name="scissors" size={28} color="#7c3aed" />
         </View>
-        <Text style={styles.heroTitle}>Welcome to ChefTrack</Text>
+        <Text style={styles.heroTitle}>Welcome to StitchTrack</Text>
         <Text style={styles.heroSub}>
-          Create a workspace for your kitchen. After setup, you'll get a join
+          Create a workspace for your sewing workshop. After setup, you'll get a join
           code — share it with your team so they can connect from their devices.
         </Text>
       </LinearGradient>
@@ -85,7 +84,7 @@ export default function Setup() {
           />
           <TextField
             label="Email"
-            placeholder="boss@workshop.com"
+            placeholder="manager@workshop.com"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -109,7 +108,7 @@ export default function Setup() {
         </View>
 
         <Button
-          label="Create boss account"
+          label="Create manager account"
           icon="arrow-right"
           onPress={handleCreate}
           loading={loading}
@@ -119,7 +118,7 @@ export default function Setup() {
         />
 
         <Text style={[styles.tip, { color: colors.mutedForeground }]}>
-          Tip: chef accounts will be created later from your dashboard with
+          Tip: operator accounts will be created later from your dashboard with
           auto-generated passwords.
         </Text>
       </KeyboardAwareScrollView>
@@ -136,7 +135,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 16,
-    backgroundColor: "rgba(249,115,22,0.15)",
+    backgroundColor: "rgba(124,58,237,0.15)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,

@@ -78,12 +78,12 @@ export default function JoinScreen() {
         </Pressable>
 
         <View style={{ alignItems: "center", marginBottom: 32 }}>
-          <View style={[styles.iconWrap, { backgroundColor: "rgba(59,130,246,0.1)" }]}>
-            <Feather name="users" size={28} color="#3b82f6" />
+          <View style={[styles.iconWrap, { backgroundColor: "rgba(124,58,237,0.1)" }]}>
+            <Feather name="users" size={28} color="#7c3aed" />
           </View>
-          <Text style={[styles.title, { color: colors.foreground }]}>Join your kitchen</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>Join your workshop</Text>
           <Text style={[styles.sub, { color: colors.mutedForeground }]}>
-            Ask your boss for the workspace code and enter it below.
+            Ask your manager for the workspace code and enter it below.
           </Text>
         </View>
 
@@ -124,7 +124,7 @@ export default function JoinScreen() {
         />
 
         <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-          The code is shown on the boss's dashboard. It looks like ABC123.
+          The code is shown on the manager's dashboard. It looks like ABC123.
         </Text>
       </KeyboardAwareScrollView>
     </View>

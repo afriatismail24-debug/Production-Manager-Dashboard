@@ -63,10 +63,10 @@ export default function Login() {
       >
         <View style={styles.brandRow}>
           <View style={[styles.brandIcon, { backgroundColor: colors.secondary }]}>
-            <Feather name="award" size={20} color={colors.primary} />
+            <Feather name="scissors" size={20} color={colors.primary} />
           </View>
           <Text style={[styles.brand, { color: colors.foreground }]}>
-            Chef<Text style={{ color: colors.primary }}>Track</Text>
+            Stitch<Text style={{ color: colors.primary }}>Track</Text>
           </Text>
         </View>
 
@@ -102,7 +102,7 @@ export default function Login() {
                 ]}
               >
                 <Feather
-                  name={m === "boss" ? "briefcase" : "user"}
+                  name={m === "boss" ? "briefcase" : "scissors"}
                   size={14}
                   color={active ? colors.primary : colors.mutedForeground}
                 />
@@ -113,7 +113,7 @@ export default function Login() {
                     fontSize: 13,
                   }}
                 >
-                  {m === "boss" ? "Boss" : "Chef"}
+                  {m === "boss" ? "Manager" : "Operator"}
                 </Text>
               </Pressable>
             );
@@ -170,7 +170,7 @@ export default function Login() {
               lineHeight: 18,
             }}
           >
-            Your password was assigned by the boss when your account was created.
+            Your password was assigned by the manager when your account was created.
             Ask them if you don't remember it.
           </Text>
         )}

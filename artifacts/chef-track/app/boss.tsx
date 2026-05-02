@@ -144,7 +144,7 @@ export default function BossDashboard() {
               onPress={handleCopyCode}
               style={styles.codeBar}
             >
-              <Feather name="users" size={13} color="#f97316" />
+              <Feather name="users" size={13} color="#7c3aed" />
               <Text style={styles.codeBarLabel}>Join code:</Text>
               <Text style={styles.codeBarValue}>{app.joinCode}</Text>
               <Feather
@@ -157,8 +157,8 @@ export default function BossDashboard() {
                 hitSlop={8}
                 style={styles.shareBtn}
               >
-                <Feather name="share-2" size={13} color="#f97316" />
-                <Text style={{ color: "#f97316", fontFamily: "Inter_600SemiBold", fontSize: 11 }}>
+                <Feather name="share-2" size={13} color="#7c3aed" />
+                <Text style={{ color: "#7c3aed", fontFamily: "Inter_600SemiBold", fontSize: 11 }}>
                   Share
                 </Text>
               </Pressable>
@@ -214,7 +214,7 @@ export default function BossDashboard() {
         <View style={styles.statsRow}>
           <Card style={styles.stat}>
             <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>
-              CHEFS ON SHIFT
+              OPERATORS ON SHIFT
             </Text>
             <Text style={[styles.statValue, { color: colors.foreground }]}>
               {activeChefIds.size}
@@ -258,7 +258,7 @@ export default function BossDashboard() {
           />
         </View>
         <Button
-          label="Manage chefs"
+          label="Manage operators"
           icon="users"
           onPress={() => router.push("/chefs")}
           fullWidth
@@ -330,12 +330,12 @@ export default function BossDashboard() {
           <SectionHeader
             title="Team activity"
             icon="users"
-            subtitle="Live status of every chef"
+            subtitle="Live status of every operator"
           />
           <View style={{ marginTop: 12, gap: 10 }}>
             {app.chefs.length === 0 ? (
               <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>
-                No chefs yet. Add your first chef from "Manage chefs".
+                No operators yet. Add your first operator from "Manage operators".
               </Text>
             ) : (
               app.chefs.map((chef) => {

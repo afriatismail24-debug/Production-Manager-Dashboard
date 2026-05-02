@@ -20,20 +20,20 @@ export default function Welcome() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <LinearGradient colors={["#1e293b", "#0f172a"]} style={[styles.hero, { paddingTop: insets.top + webTop + 32 }]}>
         <View style={styles.iconWrap}>
-          <Feather name="award" size={32} color="#f97316" />
+          <Feather name="scissors" size={32} color="#7c3aed" />
         </View>
-        <Text style={styles.title}>Chef<Text style={{ color: "#f97316" }}>Track</Text></Text>
-        <Text style={styles.sub}>Production Tracker for professional kitchens</Text>
+        <Text style={styles.title}>Stitch<Text style={{ color: "#7c3aed" }}>Track</Text></Text>
+        <Text style={styles.sub}>Production Tracker for sewing workshops</Text>
       </LinearGradient>
 
       <View style={[styles.body, { paddingBottom: insets.bottom + webBottom + 32 }]}>
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={[styles.cardIcon, { backgroundColor: "rgba(249,115,22,0.1)" }]}>
-            <Feather name="briefcase" size={22} color="#f97316" />
+          <View style={[styles.cardIcon, { backgroundColor: "rgba(124,58,237,0.1)" }]}>
+            <Feather name="briefcase" size={22} color="#7c3aed" />
           </View>
-          <Text style={[styles.cardTitle, { color: colors.foreground }]}>I'm the Boss</Text>
+          <Text style={[styles.cardTitle, { color: colors.foreground }]}>I'm the Manager</Text>
           <Text style={[styles.cardDesc, { color: colors.mutedForeground }]}>
-            Create a new workspace for your kitchen. You'll get a join code to share with your team.
+            Create a new workspace for your workshop. You'll get a join code to share with your team.
           </Text>
           <Button
             label="Create workspace"
@@ -57,7 +57,7 @@ export default function Welcome() {
           </View>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>Join a workspace</Text>
           <Text style={[styles.cardDesc, { color: colors.mutedForeground }]}>
-            Already have a workspace? Enter the 6-character join code shown on the boss's dashboard.
+            Already have a workspace? Enter the 6-character join code shown on the manager's dashboard.
           </Text>
           <Button
             label="Enter workspace code"
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 22,
-    backgroundColor: "rgba(249,115,22,0.15)",
+    backgroundColor: "rgba(124,58,237,0.15)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,

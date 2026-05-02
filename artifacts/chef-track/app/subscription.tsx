@@ -13,12 +13,12 @@ const PERKS: { icon: keyof typeof Feather.glyphMap; title: string; desc: string 
   {
     icon: "users",
     title: "Manage your whole team",
-    desc: "Add or remove chefs in seconds. Passwords are auto-generated for you.",
+    desc: "Add or remove operators in seconds. Passwords are auto-generated for you.",
   },
   {
     icon: "trending-up",
     title: "See production in real time",
-    desc: "Every submission lands on your dashboard the moment a chef hits send.",
+    desc: "Every submission lands on your dashboard the moment an operator hits send.",
   },
   {
     icon: "file-text",
@@ -28,7 +28,7 @@ const PERKS: { icon: keyof typeof Feather.glyphMap; title: string; desc: string 
   {
     icon: "bell",
     title: "Reminders & callbacks",
-    desc: "Nudge a chef to submit, or call any of them straight to your office.",
+    desc: "Nudge an operator to submit, or call any of them straight to your office.",
   },
 ];
 
@@ -48,7 +48,7 @@ export default function Subscription() {
 
   return (
     <LinearGradient
-      colors={["#fafaf9", "#fff7ed"]}
+      colors={["#fafaf9", "#f5f3ff"]}
       style={{ flex: 1 }}
     >
       <View
@@ -62,7 +62,7 @@ export default function Subscription() {
       >
         <View>
           <View style={styles.badge}>
-            <Feather name="star" size={12} color="#92400e" />
+            <Feather name="star" size={12} color="#4c1d95" />
             <Text style={styles.badgeText}>FREE PREVIEW</Text>
           </View>
           <Text style={[styles.title, { color: colors.foreground }]}>
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#fef3c7",
+    backgroundColor: "#ede9fe",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 999,
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontFamily: "Inter_700Bold",
     fontSize: 10,
-    color: "#92400e",
+    color: "#4c1d95",
     letterSpacing: 0.6,
   },
   title: {

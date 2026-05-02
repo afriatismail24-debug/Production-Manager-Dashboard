@@ -104,9 +104,9 @@ export default function ChefDashboard() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <StatusBar barStyle="light-content" backgroundColor="#f97316" />
+      <StatusBar barStyle="light-content" backgroundColor="#7c3aed" />
       <LinearGradient
-        colors={["#f97316", "#ea580c"]}
+        colors={["#7c3aed", "#6d28d9"]}
         style={{ paddingTop: insets.top + webTop + 12, paddingBottom: 24 }}
       >
         <View style={styles.headerRow}>
@@ -177,10 +177,10 @@ export default function ChefDashboard() {
               <View
                 style={[
                   styles.callIcon,
-                  { backgroundColor: "rgba(249,115,22,0.2)" },
+                  { backgroundColor: "rgba(124,58,237,0.2)" },
                 ]}
               >
-                <Feather name="phone-incoming" size={20} color="#f97316" />
+                <Feather name="phone-incoming" size={20} color="#a78bfa" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text
@@ -190,7 +190,7 @@ export default function ChefDashboard() {
                     fontSize: 15,
                   }}
                 >
-                  The boss is calling you
+                  The manager is calling you
                 </Text>
                 <Text
                   style={{
@@ -233,7 +233,7 @@ export default function ChefDashboard() {
                     fontSize: 13,
                   }}
                 >
-                  Reminder from boss
+                  Reminder from manager
                 </Text>
                 {reminders.map((r) => (
                   <Text
