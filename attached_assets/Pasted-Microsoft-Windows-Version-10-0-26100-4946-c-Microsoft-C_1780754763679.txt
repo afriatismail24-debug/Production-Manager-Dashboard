@@ -1,0 +1,38 @@
+Microsoft Windows [Version 10.0.26100.4946]
+(c) Microsoft Corporation. All rights reserved.
+
+C:\Users\ismail\Downloads\Production-Manager-Dashboard>eas whoami
+ila3robi
+afriat.ismail.24@ump.ac.ma
+
+Accounts:
+• ila3robi (Role: Owner)
+• ila3robis-team (Role: Owner)
+
+C:\Users\ismail\Downloads\Production-Manager-Dashboard>set EAS_NO_VCS=1 && eas build -p android --profile preview
+Using EAS CLI without version control system is not recommended, use this mode only if you know what you are doing.
+Failed to get Git root path with `git rev-parse --show-toplevel`. Error: spawn git ENOENT
+Falling back to using current working directory as project root.
+You can set `EAS_PROJECT_ROOT` environment variable to let eas-cli know where your project is located.
+The field "cli.appVersionSource" is not set, but it will be required in the future. Learn more: https://docs.expo.dev/build-reference/app-versions/
+Resolved "production" environment for the build. Learn more: https://docs.expo.dev/eas/environment-variables/#setting-the-environment-for-your-builds
+No environment variables with visibility "Plain text" and "Sensitive" found for the "production" environment on EAS.
+
+
+
+The field "cli.appVersionSource" is not set, but it will be required in the future. Learn more: https://docs.expo.dev/build-reference/app-versions/
+√ EAS Build does not officially support building managed project with Expo SDK < 41. Do you want to proceed? ... yes
+√ Using remote Android credentials (Expo server)
+√ Using Keystore from configuration: Build Credentials x6_mkhLrtY (default)
+
+Compressing project files and uploading to EAS Build. Learn more: https://expo.fyi/eas-build-archive
+√ Compressed project files 2s (1.0 MB)
+√ Uploaded to EAS 1s
+
+See logs: https://expo.dev/accounts/ila3robi/projects/workspace/builds/2551384a-5977-434c-bc6f-d385451ca27e
+
+Waiting for build to complete. You can press Ctrl+C to exit.
+× Build failed
+
+🤖 Android build failed:
+Unknown error. See logs of the Install dependencies build phase for more information.
