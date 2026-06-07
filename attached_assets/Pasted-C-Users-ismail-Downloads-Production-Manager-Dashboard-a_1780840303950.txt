@@ -1,0 +1,39 @@
+C:\Users\ismail\Downloads\Production-Manager-Dashboard\artifacts\chef-track>set EAS_NO_VCS=1 && eas build -p android --profile preview
+Using EAS CLI without version control system is not recommended, use this mode only if you know what you are doing.
+Failed to get Git root path with `git rev-parse --show-toplevel`. Error: spawn git ENOENT
+Falling back to using current working directory as project root.
+You can set `EAS_PROJECT_ROOT` environment variable to let eas-cli know where your project is located.
+The field "cli.appVersionSource" is not set, but it will be required in the future. Learn more: https://docs.expo.dev/build-reference/app-versions/
+EAS project not configured.
+√ Existing EAS project found for @ila3robi/chef-track (id = 5a8922fa-391c-4ce8-a7ee-47c377b78c09). Configure this project? ... yes
+√ Linked local project to EAS project 5a8922fa-391c-4ce8-a7ee-47c377b78c09
+Resolved "production" environment for the build. Learn more: https://docs.expo.dev/eas/environment-variables/#setting-the-environment-for-your-builds
+No environment variables with visibility "Plain text" and "Sensitive" found for the "production" environment on EAS.
+
+
+
+The field "cli.appVersionSource" is not set, but it will be required in the future. Learn more: https://docs.expo.dev/build-reference/app-versions/
+√ Using remote Android credentials (Expo server)
+√ Using Keystore from configuration: Build Credentials l9ItcKk40Y (default)
+
+Compressing project files and uploading to EAS Build. Learn more: https://expo.fyi/eas-build-archive
+√ Compressed project files 1s (925 KB)
+√ Uploaded to EAS 1s
+⌛️ Computing the project fingerprint is taking longer than expected...
+⏩ To skip this step, set the environment variable: EAS_SKIP_AUTO_FINGERPRINT=1
+√ Computed project fingerprint
+
+See logs: https://expo.dev/accounts/ila3robi/projects/chef-track/builds/e45a0f84-b153-4b51-87fc-0b9af4185cb9
+
+Waiting for build to complete. You can press Ctrl+C to exit.
+√ Build finished
+
+🤖 Android app:
+https://expo.dev/artifacts/eas/uctzCw6vj79m9S81kerWFT.apk
+
+√ Install and run the Android build on an emulator? ... yes
+
+√ Successfully downloaded app 6s
+adb executable doesn't seem to work. Please make sure Android Studio is installed on your device and ANDROID_HOME or ANDROID_SDK_ROOT env variables are set.
+spawn adb ENOENT
+    Error: build command failed.
