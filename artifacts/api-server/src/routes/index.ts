@@ -9,11 +9,13 @@ import objectivesRouter from "./objectives.js";
 import remindersRouter from "./reminders.js";
 import callsRouter from "./calls.js";
 import syncRouter from "./sync.js";
+import invitesRouter from "./invites.js";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(workspaceRouter);
+router.use(invitesRouter);
 router.use(chefsRouter);
 router.use(sessionsRouter);
 router.use(productionsRouter);

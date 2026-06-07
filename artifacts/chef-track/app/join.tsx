@@ -21,7 +21,7 @@ export default function JoinScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { joinWorkspace } = useApp();
-  const params = useLocalSearchParams<{ code?: string }>();
+  const params = useLocalSearchParams<{ code?: string; invite?: string }>();
 
   const [code, setCode] = useState((params.code ?? "").toUpperCase());
   const [error, setError] = useState<string | null>(null);
@@ -32,11 +32,28 @@ export default function JoinScreen() {
   const webBottom = Platform.OS === "web" ? 34 : 0;
 
   useEffect(() => {
-    if (params.code) {
+    if (params.invite) {
+      handleInvite(params.invite);
+    } else if (params.code) {
       handleJoin(params.code.toUpperCase());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleInvite = async (token: string) => {
+    setError(null);
+    setLoading(true);
+    try {
+      const result = await joinWorkspace("", token);
+      if (result.ok) {
+        router.replace("/login");
+      } else {
+        setError(result.error ?? "Invalid invite. Ask your manager for a new QR code.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleJoin = async (overrideCode?: string) => {
     const target = (overrideCode ?? code).trim().toUpperCase();

@@ -56,7 +56,7 @@ interface AppContextValue {
   calls: CallData[];
 
   setupBoss: (name: string, email: string, password: string) => Promise<void>;
-  joinWorkspace: (code: string) => Promise<WorkspaceJoinResult>;
+  joinWorkspace: (code: string, inviteToken?: string) => Promise<WorkspaceJoinResult>;
   markSubscriptionSeen: () => Promise<void>;
   loginBoss: (email: string, password: string) => Promise<boolean>;
   loginChef: (email: string, password: string) => Promise<boolean>;
@@ -234,19 +234,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(s));
   }, []);
 
-  const joinWorkspace = useCallback(async (code: string): Promise<WorkspaceJoinResult> => {
-    const trimmed = code.trim().toUpperCase();
+  const joinWorkspace = useCallback(async (code: string, inviteToken?: string): Promise<WorkspaceJoinResult> => {
     try {
-      setApiWorkspaceCode(trimmed);
-      const info = await api.workspace.byCode(trimmed);
-      await AsyncStorage.setItem(JOIN_CODE_KEY, trimmed);
-      setJoinCode(trimmed);
+      let resolvedCode = code.trim().toUpperCase();
+
+      if (inviteToken) {
+        const result = await api.invites.use(inviteToken);
+        if (!result.ok) return { ok: false, error: "Invalid invite. Ask your manager for a new QR code." };
+        resolvedCode = result.joinCode.trim().toUpperCase();
+      }
+
+      setApiWorkspaceCode(resolvedCode);
+      const info = await api.workspace.byCode(resolvedCode);
+      await AsyncStorage.setItem(JOIN_CODE_KEY, resolvedCode);
+      setJoinCode(resolvedCode);
       setBoss({ name: info.bossName!, email: info.bossEmail! });
       setSubscriptionSeen(info.subscriptionSeen ?? false);
       return { ok: true, bossName: info.bossName };
-    } catch {
+    } catch (e: unknown) {
       setApiWorkspaceCode(null);
-      return { ok: false, error: "Workspace not found. Check the code and try again." };
+      const msg = (e as Error)?.message;
+      return { ok: false, error: msg || "Workspace not found. Check the code and try again." };
     }
   }, []);
 

@@ -120,6 +120,14 @@ export const api = {
     acknowledge: (chefId: string) =>
       request<{ ok: boolean }>("POST", `/calls/acknowledge/${chefId}`),
   },
+  invites: {
+    generate: () =>
+      request<{ token: string }>("POST", "/invites/generate"),
+    current: () =>
+      request<{ token: string | null }>("GET", "/invites/current"),
+    use: (token: string) =>
+      request<{ ok: boolean; joinCode: string }>("POST", "/invites/use", { token }),
+  },
   sync: (today = true) =>
     request<SyncData>("GET", `/sync?today=${today ? "1" : "0"}`),
 };
