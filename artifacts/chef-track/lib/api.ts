@@ -1,7 +1,11 @@
+import { Platform } from "react-native";
+
 const BASE = (() => {
-  if (typeof window !== "undefined" && window.location?.origin) {
+  // On web (browser), use the current page origin so relative routing works
+  if (Platform.OS === "web" && typeof window !== "undefined" && window.location?.origin) {
     return `${window.location.origin}/api`;
   }
+  // On native (Android/iOS), use the configured server domain
   const domain = process.env.EXPO_PUBLIC_DOMAIN;
   if (domain) return `https://${domain}/api`;
   return "http://localhost:8080/api";
