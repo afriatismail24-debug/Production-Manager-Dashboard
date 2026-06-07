@@ -6,9 +6,9 @@ const BASE = (() => {
     return `${window.location.origin}/api`;
   }
   // On native (Android/iOS), use the configured server domain
-  const domain = process.env.EXPO_PUBLIC_DOMAIN;
-  if (domain) return `https://${domain}/api`;
-  return "http://localhost:8080/api";
+  const domain = process.env.EXPO_PUBLIC_DOMAIN
+    ?? "08e2f69d-a162-43d6-8c47-9a90ca846bc6-00-1r4yis9sa04hg.kirk.replit.dev";
+  return `https://${domain}/api`;
 })();
 
 let _joinCode: string | null = null;
