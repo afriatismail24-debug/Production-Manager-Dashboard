@@ -42,6 +42,7 @@ export interface Session {
 
 interface AppContextValue {
   loaded: boolean;
+  isOnline: boolean;
   joinCode: string | null;
   boss: { name: string; email: string } | null;
   subscriptionSeen: boolean;
@@ -63,8 +64,9 @@ interface AppContextValue {
   logout: () => Promise<void>;
   leaveWorkspace: () => Promise<void>;
 
-  addChef: (name: string, email: string) => Promise<ChefData>;
+  addChef: (name: string, email: string, password?: string) => Promise<ChefData>;
   removeChef: (id: string) => Promise<void>;
+  setChefTarget: (id: string, target: number | null) => Promise<void>;
 
   addObjective: (texts: string[]) => Promise<void>;
   removeObjective: (id: string) => Promise<void>;
@@ -114,6 +116,7 @@ const emptySyncData: SyncData = {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [loaded, setLoaded] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
   const [joinCode, setJoinCode] = useState<string | null>(null);
   const [boss, setBoss] = useState<{ name: string; email: string } | null>(null);
   const [subscriptionSeen, setSubscriptionSeen] = useState(false);
@@ -124,12 +127,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const knownReminderIds = useRef<Set<string>>(new Set());
   const knownCallIds = useRef<Set<string>>(new Set());
   const sessionRef = useRef<Session | null>(null);
+  const failCountRef = useRef(0);
 
   useEffect(() => { sessionRef.current = session; }, [session]);
 
   const doSync = useCallback(async () => {
     try {
       const data = await api.sync(true);
+      failCountRef.current = 0;
+      setIsOnline(true);
       const sess = sessionRef.current;
 
       if (sess?.role === "chef" && sess.chefId) {
@@ -155,7 +161,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       setSyncData(data);
     } catch {
-      // silently ignore poll errors
+      failCountRef.current += 1;
+      if (failCountRef.current >= 2) setIsOnline(false);
     }
   }, []);
 
@@ -303,10 +310,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSyncData(emptySyncData);
   }, []);
 
-  const addChef = useCallback(async (name: string, email: string) => {
-    const chef = await api.chefs.add(name, email);
+  const addChef = useCallback(async (name: string, email: string, password?: string) => {
+    const chef = await api.chefs.add(name, email, password);
     await doSync();
     return chef;
+  }, [doSync]);
+
+  const setChefTarget = useCallback(async (id: string, target: number | null) => {
+    await api.chefs.setTarget(id, target);
+    await doSync();
   }, [doSync]);
 
   const removeChef = useCallback(async (id: string) => {
@@ -433,11 +445,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<AppContextValue>(
     () => ({
-      loaded, joinCode, boss, subscriptionSeen, session,
+      loaded, isOnline, joinCode, boss, subscriptionSeen, session,
       chefs: syncData.chefs, workSessions: syncData.workSessions, productions: syncData.productions,
       problems: syncData.problems, objectives: syncData.objectives, reminders: syncData.reminders, calls: syncData.calls,
       setupBoss, joinWorkspace, markSubscriptionSeen, loginBoss, loginChef, logout, leaveWorkspace,
-      addChef, removeChef, addObjective, removeObjective,
+      addChef, removeChef, setChefTarget, addObjective, removeObjective,
       checkIn, checkOut, currentWorkSession,
       submitProduction, updateProduction, deleteProduction,
       submitProblem, updateProblem, deleteProblem,

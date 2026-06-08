@@ -11,11 +11,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
+import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { NetworkBanner } from "@/components/NetworkBanner";
 import { ToastProvider } from "@/components/ToastNotification";
 import { AppProvider } from "@/contexts/AppContext";
 
@@ -55,6 +57,10 @@ function RootLayoutNav() {
       <Stack.Screen name="welcome" />
       <Stack.Screen name="join" />
       <Stack.Screen name="reset" />
+      <Stack.Screen
+        name="history"
+        options={{ presentation: "modal", headerShown: false }}
+      />
     </Stack>
   );
 }
@@ -85,7 +91,10 @@ export default function RootLayout() {
             <KeyboardProvider>
               <AppProvider>
                 <ToastProvider>
-                  <RootLayoutNav />
+                  <View style={{ flex: 1 }}>
+                    <NetworkBanner />
+                    <RootLayoutNav />
+                  </View>
                 </ToastProvider>
               </AppProvider>
             </KeyboardProvider>

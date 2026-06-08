@@ -13,6 +13,7 @@ export interface Chef {
   password: string;
   createdAt: number;
   order: number;
+  dailyTarget: number | null;
 }
 
 export interface Session {

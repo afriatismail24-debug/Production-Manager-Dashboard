@@ -8,7 +8,7 @@ router.get("/chefs", async (req, res) => {
   const code = getJoinCode(req);
   if (!code) return res.status(400).json({ error: "Missing workspace code" });
   const { rows } = await pool.query(
-    "SELECT id, name, email, password, chef_order, created_at FROM chefs WHERE join_code = $1 ORDER BY chef_order ASC",
+    "SELECT id, name, email, password, chef_order, daily_target, created_at FROM chefs WHERE join_code = $1 ORDER BY chef_order ASC",
     [code],
   );
   return res.json(rows.map((c) => ({
@@ -17,6 +17,7 @@ router.get("/chefs", async (req, res) => {
     email: c.email,
     password: c.password,
     order: c.chef_order,
+    dailyTarget: c.daily_target ?? null,
     createdAt: Number(c.created_at),
   })));
 });
@@ -24,14 +25,14 @@ router.get("/chefs", async (req, res) => {
 router.post("/chefs", async (req, res) => {
   const code = getJoinCode(req);
   if (!code) return res.status(400).json({ error: "Missing workspace code" });
-  const { name, email } = req.body as { name: string; email: string };
+  const { name, email, password: customPassword } = req.body as { name: string; email: string; password?: string };
   if (!name || !email) return res.status(400).json({ error: "Missing fields" });
 
   const { rows: existing } = await pool.query(
     "SELECT id FROM chefs WHERE join_code = $1 AND email = $2",
     [code, email.trim().toLowerCase()],
   );
-  if (existing.length > 0) return res.status(409).json({ error: "Chef with this email already exists" });
+  if (existing.length > 0) return res.status(409).json({ error: "Operator with this email already exists" });
 
   const { rows: ws } = await pool.query("SELECT id FROM workspaces WHERE join_code=$1", [code]);
   if (ws.length === 0) return res.status(404).json({ error: "Workspace not found" });
@@ -41,7 +42,7 @@ router.post("/chefs", async (req, res) => {
     [code],
   );
   const order = parseInt(countRows[0].cnt, 10) + 1;
-  const password = String(order).repeat(6);
+  const password = customPassword?.trim() || String(order).repeat(6);
   const id = makeId();
 
   await pool.query(
@@ -49,7 +50,18 @@ router.post("/chefs", async (req, res) => {
     [id, ws[0].id, code, name.trim(), email.trim().toLowerCase(), password, order, Date.now()],
   );
 
-  return res.json({ id, name: name.trim(), email: email.trim().toLowerCase(), password, order, createdAt: Date.now() });
+  return res.json({ id, name: name.trim(), email: email.trim().toLowerCase(), password, order, dailyTarget: null, createdAt: Date.now() });
+});
+
+router.put("/chefs/:id/target", async (req, res) => {
+  const code = getJoinCode(req);
+  if (!code) return res.status(400).json({ error: "Missing workspace code" });
+  const { target } = req.body as { target: number | null };
+  await pool.query(
+    "UPDATE chefs SET daily_target=$1 WHERE id=$2 AND join_code=$3",
+    [target ?? null, req.params.id, code],
+  );
+  return res.json({ ok: true });
 });
 
 router.delete("/chefs/:id", async (req, res) => {

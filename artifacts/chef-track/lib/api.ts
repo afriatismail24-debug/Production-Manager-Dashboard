@@ -66,8 +66,9 @@ export const api = {
   },
   chefs: {
     list: () => request<ChefData[]>("GET", "/chefs"),
-    add: (name: string, email: string) => request<ChefData>("POST", "/chefs", { name, email }),
+    add: (name: string, email: string, password?: string) => request<ChefData>("POST", "/chefs", { name, email, password }),
     remove: (id: string) => request<{ ok: boolean }>("DELETE", `/chefs/${id}`),
+    setTarget: (id: string, target: number | null) => request<{ ok: boolean }>("PUT", `/chefs/${id}/target`, { target }),
   },
   sessions: {
     checkIn: (userId: string, role: string) =>
@@ -146,6 +147,7 @@ export interface ChefData {
   email: string;
   password: string;
   order: number;
+  dailyTarget: number | null;
   createdAt: number;
 }
 

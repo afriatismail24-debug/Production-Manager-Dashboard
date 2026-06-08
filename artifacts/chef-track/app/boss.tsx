@@ -20,6 +20,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ShareCodeModal } from "@/components/ShareCodeModal";
 import { SectionHeader } from "@/components/SectionHeader";
+import { ShiftSummaryModal } from "@/components/ShiftSummaryModal";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { fmtDateTime, fmtDuration, fmtTime } from "@/lib/format";
@@ -43,6 +44,8 @@ export default function BossDashboard() {
   const [codeCopied, setCodeCopied] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  const [summaryDate, setSummaryDate] = useState<Date | null>(null);
 
   const handleCopyCode = async () => {
     if (!app.joinCode) return;
@@ -86,27 +89,27 @@ export default function BossDashboard() {
     setCheckingIn(true);
     try {
       await app.checkOut("boss");
-      const date = new Date();
-      const allChefs = app.chefs;
-      try {
-        await generateAndSharePdf({
-          bossName: app.boss?.name ?? "Boss",
-          date,
-          chefs: allChefs,
-          objectives: app.todayObjectives(),
-          workSessions: app.todayWorkSessionsAll(),
-          productions: app.todayProductionsAll(),
-          problems: app.todayProblemsAll(),
-          bossSession: app.workSessions.find(
-            (w) => w.userId === "boss" && w.checkOutAt !== null,
-          ) ?? null,
-        });
-      } catch (err) {
-        Alert.alert("Could not export PDF", String(err));
-      }
+      setSummaryDate(new Date());
+      setShowSummary(true);
     } finally {
       setCheckingIn(false);
     }
+  };
+
+  const handleDownloadPdf = async () => {
+    await generateAndSharePdf({
+      bossName: app.boss?.name ?? "Manager",
+      date: summaryDate ?? new Date(),
+      chefs: app.chefs,
+      objectives: app.todayObjectives(),
+      workSessions: app.todayWorkSessionsAll(),
+      productions: app.todayProductionsAll(),
+      problems: app.todayProblemsAll(),
+      bossSession:
+        app.workSessions.find((w) => w.userId === "boss" && w.checkOutAt !== null) ?? null,
+      calls: app.calls,
+    });
+    setShowSummary(false);
   };
 
   const handleLogout = async () => {
@@ -257,13 +260,22 @@ export default function BossDashboard() {
             style={{ flex: 1 }}
           />
         </View>
-        <Button
-          label="Manage operators"
-          icon="users"
-          onPress={() => router.push("/chefs")}
-          fullWidth
-          variant="primary"
-        />
+        <View style={styles.actionRow}>
+          <Button
+            label="Past shifts"
+            icon="clock"
+            variant="outline"
+            onPress={() => router.push("/history")}
+            style={{ flex: 1 }}
+          />
+          <Button
+            label="Manage operators"
+            icon="users"
+            onPress={() => router.push("/chefs")}
+            style={{ flex: 1 }}
+            variant="primary"
+          />
+        </View>
         <Button
           label="Download today's PDF"
           icon="download"
@@ -272,15 +284,15 @@ export default function BossDashboard() {
           onPress={async () => {
             try {
               await generateAndSharePdf({
-                bossName: app.boss?.name ?? "Boss",
+                bossName: app.boss?.name ?? "Manager",
                 date: new Date(),
                 chefs: app.chefs,
                 objectives: app.todayObjectives(),
                 workSessions: app.todayWorkSessionsAll(),
                 productions: app.todayProductionsAll(),
                 problems: app.todayProblemsAll(),
-                bossSession:
-                  app.workSessions.find((w) => w.userId === "boss") ?? null,
+                bossSession: app.workSessions.find((w) => w.userId === "boss") ?? null,
+                calls: app.calls,
               });
             } catch (err) {
               Alert.alert("Could not export PDF", String(err));
@@ -624,6 +636,13 @@ export default function BossDashboard() {
           </View>
         </Card>
       </ScrollView>
+
+      <ShiftSummaryModal
+        visible={showSummary}
+        date={summaryDate}
+        onDownloadPdf={handleDownloadPdf}
+        onClose={() => setShowSummary(false)}
+      />
     </View>
   );
 }
