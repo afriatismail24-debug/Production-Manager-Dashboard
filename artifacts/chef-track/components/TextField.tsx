@@ -8,6 +8,7 @@ import {
   ViewStyle,
 } from "react-native";
 
+import { useLang } from "@/contexts/LanguageContext";
 import { useColors } from "@/hooks/useColors";
 
 interface Props extends TextInputProps {
@@ -24,6 +25,10 @@ export function TextField({
   ...rest
 }: Props) {
   const colors = useColors();
+  const { lang } = useLang();
+  const isRtl = lang === "ar";
+  const align = isRtl ? "right" : "left";
+
   return (
     <View style={[{ gap: 6 }, containerStyle]}>
       {label ? (
@@ -32,6 +37,7 @@ export function TextField({
             fontFamily: "Inter_500Medium",
             color: colors.mutedForeground,
             fontSize: 13,
+            textAlign: align,
           }}
         >
           {label}
@@ -39,6 +45,8 @@ export function TextField({
       ) : null}
       <TextInput
         placeholderTextColor={colors.mutedForeground}
+        textAlign={align}
+        writingDirection={isRtl ? "rtl" : "ltr"}
         style={[
           styles.input,
           {
@@ -46,6 +54,7 @@ export function TextField({
             backgroundColor: colors.card,
             color: colors.foreground,
             borderRadius: colors.radius,
+            textAlign: align,
           },
           style,
         ]}
@@ -57,6 +66,7 @@ export function TextField({
             color: colors.destructive,
             fontFamily: "Inter_500Medium",
             fontSize: 12,
+            textAlign: align,
           }}
         >
           {errorText}
