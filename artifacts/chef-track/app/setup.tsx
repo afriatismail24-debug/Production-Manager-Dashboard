@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/Button";
 import { TextField } from "@/components/TextField";
 import { useApp } from "@/contexts/AppContext";
+import { useLang } from "@/contexts/LanguageContext";
 import { useColors } from "@/hooks/useColors";
 
 export default function Setup() {
@@ -22,9 +23,9 @@ export default function Setup() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { setupBossGoogle } = useApp();
+  const { t, lang } = useLang();
   const { user } = useUser();
 
-  // Pre-fill manager name from Google profile
   const googleName = user?.fullName ?? user?.firstName ?? "";
   const googleEmail = user?.primaryEmailAddress?.emailAddress ?? "";
 
@@ -33,21 +34,22 @@ export default function Setup() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Sync name once user profile loads
+  const isRtl = lang === "ar";
+
   useEffect(() => {
     if (googleName && !managerName) setManagerName(googleName);
   }, [googleName]);
 
   const handleCreate = async () => {
     setError(null);
-    if (!workshopName.trim()) return setError("Please enter your workshop or company name.");
-    if (!managerName.trim()) return setError("Please enter your name.");
+    if (!workshopName.trim()) return setError(t("workshopNameLabel") + " ?");
+    if (!managerName.trim()) return setError(t("yourName") + " ?");
     setLoading(true);
     try {
       await setupBossGoogle(workshopName.trim(), managerName.trim(), googleEmail);
       router.replace("/subscription");
     } catch (err: unknown) {
-      setError((err as Error).message ?? "Setup failed. Try again.");
+      setError((err as Error).message ?? t("error"));
     } finally {
       setLoading(false);
     }
@@ -65,13 +67,18 @@ export default function Setup() {
         <View style={styles.heroIcon}>
           <Feather name="scissors" size={28} color="#7c3aed" />
         </View>
-        <Text style={styles.heroTitle}>Set up your workspace</Text>
-        <Text style={styles.heroSub}>
-          You're signed in with Google as{" "}
-          <Text style={{ color: "#f97316", fontFamily: "Inter_600SemiBold" }}>
-            {googleEmail || "your Google account"}
-          </Text>
-          . Give your workshop a name and your operators can join with a code.
+        <Text style={[styles.heroTitle, { textAlign: isRtl ? "right" : "left" }]}>
+          {t("setUpWorkspace")}
+        </Text>
+        <Text style={[styles.heroSub, { textAlign: isRtl ? "right" : "left" }]}>
+          {googleEmail ? (
+            <>
+              {isRtl ? "" : ""}
+              <Text style={{ color: "#f97316", fontFamily: "Inter_600SemiBold" }}>
+                {googleEmail}
+              </Text>
+            </>
+          ) : null}
         </Text>
       </LinearGradient>
 
@@ -85,15 +92,15 @@ export default function Setup() {
       >
         <View style={{ gap: 14 }}>
           <TextField
-            label="Workshop / company name"
-            placeholder="e.g. Sunrise Garments"
+            label={t("workshopNameLabel")}
+            placeholder={t("workshopNamePlaceholder")}
             value={workshopName}
             onChangeText={setWorkshopName}
             autoCapitalize="words"
           />
           <TextField
-            label="Your name"
-            placeholder="e.g. Jordan Pierce"
+            label={t("yourName")}
+            placeholder={t("yourNamePlaceholder")}
             value={managerName}
             onChangeText={setManagerName}
             autoCapitalize="words"
@@ -102,7 +109,7 @@ export default function Setup() {
         </View>
 
         <Button
-          label="Create workspace"
+          label={t("createWorkspaceBtn")}
           icon="arrow-right"
           onPress={handleCreate}
           loading={loading}
@@ -111,9 +118,8 @@ export default function Setup() {
           style={{ marginTop: 24 }}
         />
 
-        <Text style={[styles.tip, { color: colors.mutedForeground }]}>
-          Your workspace is linked to your Google account. Only you can sign in
-          as manager — operators join via the 6-letter code you'll share with them.
+        <Text style={[styles.tip, { color: colors.mutedForeground, textAlign: isRtl ? "right" : "center" }]}>
+          {t("setupTip")}
         </Text>
       </KeyboardAwareScrollView>
     </View>
@@ -153,7 +159,6 @@ const styles = StyleSheet.create({
   tip: {
     fontFamily: "Inter_400Regular",
     fontSize: 12,
-    textAlign: "center",
     marginTop: 16,
     lineHeight: 18,
   },

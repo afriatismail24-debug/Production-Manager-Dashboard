@@ -22,6 +22,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { NetworkBanner } from "@/components/NetworkBanner";
 import { ToastProvider } from "@/components/ToastNotification";
 import { AppProvider } from "@/contexts/AppContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import { setAuthTokenGetter } from "@/lib/api";
 
 SplashScreen.preventAutoHideAsync();
@@ -74,6 +75,7 @@ function RootLayoutNav() {
         name="reminder"
         options={{ presentation: "modal", headerShown: false }}
       />
+      <Stack.Screen name="language" />
       <Stack.Screen name="welcome" />
       <Stack.Screen name="join" />
       <Stack.Screen name="reset" />
@@ -111,15 +113,17 @@ export default function RootLayout() {
             <QueryClientProvider client={queryClient}>
               <GestureHandlerRootView style={{ flex: 1 }}>
                 <KeyboardProvider>
-                  <ClerkTokenSync />
-                  <AppProvider>
-                    <ToastProvider>
-                      <View style={{ flex: 1 }}>
-                        <NetworkBanner />
-                        <RootLayoutNav />
-                      </View>
-                    </ToastProvider>
-                  </AppProvider>
+                  <LanguageProvider>
+                    <ClerkTokenSync />
+                    <AppProvider>
+                      <ToastProvider>
+                        <View style={{ flex: 1 }}>
+                          <NetworkBanner />
+                          <RootLayoutNav />
+                        </View>
+                      </ToastProvider>
+                    </AppProvider>
+                  </LanguageProvider>
                 </KeyboardProvider>
               </GestureHandlerRootView>
             </QueryClientProvider>

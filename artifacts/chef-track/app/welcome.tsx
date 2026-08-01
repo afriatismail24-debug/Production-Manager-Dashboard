@@ -6,13 +6,16 @@ import { Platform, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Button } from "@/components/Button";
+import { useLang } from "@/contexts/LanguageContext";
 import { useColors } from "@/hooks/useColors";
 
 export default function Welcome() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t, lang } = useLang();
 
+  const isRtl = lang === "ar";
   const webTop = Platform.OS === "web" ? 67 : 0;
   const webBottom = Platform.OS === "web" ? 34 : 0;
 
@@ -23,7 +26,7 @@ export default function Welcome() {
           <Feather name="scissors" size={32} color="#7c3aed" />
         </View>
         <Text style={styles.title}>Stitch<Text style={{ color: "#7c3aed" }}>Track</Text></Text>
-        <Text style={styles.sub}>Production Tracker for sewing workshops</Text>
+        <Text style={[styles.sub, { textAlign: isRtl ? "right" : "center" }]}>{t("tagline")}</Text>
       </LinearGradient>
 
       <View style={[styles.body, { paddingBottom: insets.bottom + webBottom + 32 }]}>
@@ -31,14 +34,14 @@ export default function Welcome() {
           <View style={[styles.cardIcon, { backgroundColor: "rgba(124,58,237,0.1)" }]}>
             <Feather name="briefcase" size={22} color="#7c3aed" />
           </View>
-          <Text style={[styles.cardTitle, { color: colors.foreground }]}>I'm the Manager</Text>
-          <Text style={[styles.cardDesc, { color: colors.mutedForeground }]}>
-            Create a new workspace for your workshop. You'll get a join code to share with your team.
+          <Text style={[styles.cardTitle, { color: colors.foreground, textAlign: isRtl ? "right" : "left" }]}>{t("imTheManager")}</Text>
+          <Text style={[styles.cardDesc, { color: colors.mutedForeground, textAlign: isRtl ? "right" : "left" }]}>
+            {t("managerDesc")}
           </Text>
           <Button
-            label="Create workspace"
+            label={t("createWorkspace")}
             icon="arrow-right"
-            onPress={() => router.push("/setup")}
+            onPress={() => router.push("/login")}
             fullWidth
             size="lg"
             style={{ marginTop: 16 }}
@@ -47,7 +50,7 @@ export default function Welcome() {
 
         <View style={[styles.divider, { borderColor: colors.border }]}>
           <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-          <Text style={[styles.dividerText, { color: colors.mutedForeground }]}>or</Text>
+          <Text style={[styles.dividerText, { color: colors.mutedForeground }]}>{t("or")}</Text>
           <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
         </View>
 
@@ -55,12 +58,12 @@ export default function Welcome() {
           <View style={[styles.cardIcon, { backgroundColor: "rgba(59,130,246,0.1)" }]}>
             <Feather name="log-in" size={22} color="#3b82f6" />
           </View>
-          <Text style={[styles.cardTitle, { color: colors.foreground }]}>Join a workspace</Text>
-          <Text style={[styles.cardDesc, { color: colors.mutedForeground }]}>
-            Already have a workspace? Enter the 6-character join code shown on the manager's dashboard.
+          <Text style={[styles.cardTitle, { color: colors.foreground, textAlign: isRtl ? "right" : "left" }]}>{t("joinWorkspace")}</Text>
+          <Text style={[styles.cardDesc, { color: colors.mutedForeground, textAlign: isRtl ? "right" : "left" }]}>
+            {t("joinDesc")}
           </Text>
           <Button
-            label="Enter workspace code"
+            label={t("enterCode")}
             icon="log-in"
             onPress={() => router.push("/join")}
             fullWidth
@@ -100,7 +103,6 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     fontSize: 14,
     marginTop: 6,
-    textAlign: "center",
   },
   body: {
     flex: 1,

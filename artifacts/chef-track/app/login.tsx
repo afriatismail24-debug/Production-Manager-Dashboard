@@ -1,4 +1,4 @@
-import { useSSO } from "@clerk/expo";
+import { useAuth, useSSO } from "@clerk/expo";
 import { Feather } from "@expo/vector-icons";
 import * as AuthSession from "expo-auth-session";
 import { useRouter } from "expo-router";
@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/Button";
 import { TextField } from "@/components/TextField";
 import { useApp } from "@/contexts/AppContext";
+import { useLang } from "@/contexts/LanguageContext";
 import { useColors } from "@/hooks/useColors";
 
 // Preload the browser on Android to reduce OAuth round-trip latency
@@ -40,7 +41,10 @@ export default function Login() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { loginChef, loginWithGoogle } = useApp();
+  const { t, lang } = useLang();
   const { startSSOFlow } = useSSO();
+  // Detect if Clerk already has an active session (e.g. returning user)
+  const { isSignedIn } = useAuth();
 
   const [mode, setMode] = useState<Mode>("boss");
   const [email, setEmail] = useState("");
@@ -48,10 +52,24 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const isRtl = lang === "ar";
+
   const handleGoogleSignIn = useCallback(async () => {
     setError(null);
     setLoading(true);
     try {
+      // If Clerk already has an active session, skip the OAuth popup and
+      // go straight to loading the workspace — this fixes "already logged in".
+      if (isSignedIn) {
+        const result = await loginWithGoogle();
+        if (result === "no_workspace") {
+          router.replace("/setup");
+        } else {
+          router.replace("/boss");
+        }
+        return;
+      }
+
       const { createdSessionId, setActive } = await startSSOFlow({
         strategy: "oauth_google",
         redirectUrl: AuthSession.makeRedirectUri(),
@@ -59,28 +77,29 @@ export default function Login() {
 
       if (createdSessionId && setActive) {
         await setActive({ session: createdSessionId });
-        // Token is now set via ClerkTokenSync — look up (or prompt to create) workspace
-        const result = await loginWithGoogle();
-        if (result === "no_workspace") {
-          router.replace("/setup");
-        } else {
-          router.replace("/boss");
-        }
+      }
+
+      // Whether a new session was created or one already existed, load the workspace
+      const result = await loginWithGoogle();
+      if (result === "no_workspace") {
+        router.replace("/setup");
+      } else {
+        router.replace("/boss");
       }
     } catch (err: unknown) {
-      const msg = (err as Error)?.message ?? "Google sign-in failed. Try again.";
+      const msg = (err as Error)?.message ?? t("googleFailed");
       setError(msg);
     } finally {
       setLoading(false);
     }
-  }, [startSSOFlow, loginWithGoogle, router]);
+  }, [isSignedIn, startSSOFlow, loginWithGoogle, router, t]);
 
   const handleChefLogin = async () => {
     setError(null);
     setLoading(true);
     try {
       const ok = await loginChef(email, password);
-      if (!ok) return setError("Email or password is incorrect.");
+      if (!ok) return setError(t("wrongCredentials"));
       router.replace("/chef");
     } finally {
       setLoading(false);
@@ -103,7 +122,7 @@ export default function Login() {
           justifyContent: "center",
         }}
       >
-        <View style={styles.brandRow}>
+        <View style={[styles.brandRow, isRtl && { flexDirection: "row-reverse" }]}>
           <View style={[styles.brandIcon, { backgroundColor: colors.secondary }]}>
             <Feather name="scissors" size={20} color={colors.primary} />
           </View>
@@ -112,11 +131,11 @@ export default function Login() {
           </Text>
         </View>
 
-        <Text style={[styles.title, { color: colors.foreground }]}>
-          Welcome back
+        <Text style={[styles.title, { color: colors.foreground, textAlign: isRtl ? "right" : "left" }]}>
+          {t("welcomeBack")}
         </Text>
-        <Text style={[styles.sub, { color: colors.mutedForeground }]}>
-          Sign in to your workshop
+        <Text style={[styles.sub, { color: colors.mutedForeground, textAlign: isRtl ? "right" : "left" }]}>
+          {t("signInSub")}
         </Text>
 
         {/* Tab switcher */}
@@ -131,10 +150,7 @@ export default function Login() {
             return (
               <Pressable
                 key={m}
-                onPress={() => {
-                  setMode(m);
-                  setError(null);
-                }}
+                onPress={() => { setMode(m); setError(null); }}
                 style={[
                   styles.tab,
                   {
@@ -156,7 +172,7 @@ export default function Login() {
                     fontSize: 13,
                   }}
                 >
-                  {m === "boss" ? "Manager" : "Operator"}
+                  {m === "boss" ? t("manager") : t("operator")}
                 </Text>
               </Pressable>
             );
@@ -182,41 +198,39 @@ export default function Login() {
                 <ActivityIndicator size="small" color={colors.primary} />
               ) : (
                 <>
-                  {/* Google "G" logo in brand colours */}
                   <View style={styles.googleLogo}>
                     <Text style={styles.googleLogoText}>G</Text>
                   </View>
                   <Text style={[styles.googleBtnText, { color: colors.foreground }]}>
-                    Continue with Google
+                    {t("continueWithGoogle")}
                   </Text>
                 </>
               )}
             </Pressable>
 
             {error ? (
-              <Text style={[styles.errorText, { color: colors.destructive }]}>
+              <Text style={[styles.errorText, { color: colors.destructive, textAlign: isRtl ? "right" : "center" }]}>
                 {error}
               </Text>
             ) : null}
 
-            <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-              Each company uses their own Google account. Your workspace and all
-              production data are tied to that account.
+            <Text style={[styles.hint, { color: colors.mutedForeground, textAlign: isRtl ? "right" : "center" }]}>
+              {t("googleHint")}
             </Text>
           </View>
         ) : (
           /* ── Operator tab: email + password ── */
           <View style={{ marginTop: 24, gap: 14 }}>
             <TextField
-              label="Email"
-              placeholder="you@workshop.com"
+              label={t("email")}
+              placeholder={t("emailPlaceholder")}
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
               keyboardType="email-address"
             />
             <TextField
-              label="Password"
+              label={t("password")}
               placeholder="••••••"
               value={password}
               onChangeText={setPassword}
@@ -225,7 +239,7 @@ export default function Login() {
             />
 
             <Button
-              label="Sign in"
+              label={t("signIn")}
               icon="log-in"
               onPress={handleChefLogin}
               loading={loading}
@@ -233,17 +247,8 @@ export default function Login() {
               size="lg"
             />
 
-            <Text
-              style={{
-                color: colors.mutedForeground,
-                fontFamily: "Inter_400Regular",
-                fontSize: 12,
-                textAlign: "center",
-                lineHeight: 18,
-              }}
-            >
-              Your password was assigned by the manager when your account was
-              created. Ask them if you don't remember it.
+            <Text style={[styles.hint, { color: colors.mutedForeground, textAlign: isRtl ? "right" : "center" }]}>
+              {t("operatorHint")}
             </Text>
           </View>
         )}
@@ -331,12 +336,10 @@ const styles = StyleSheet.create({
   errorText: {
     fontFamily: "Inter_400Regular",
     fontSize: 13,
-    textAlign: "center",
   },
   hint: {
     fontFamily: "Inter_400Regular",
     fontSize: 12,
-    textAlign: "center",
     lineHeight: 18,
   },
 });
