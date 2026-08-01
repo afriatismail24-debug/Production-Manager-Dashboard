@@ -12,6 +12,7 @@ const BASE = (() => {
 })();
 
 let _joinCode: string | null = null;
+let _authTokenGetter: (() => Promise<string | null>) | null = null;
 
 export function setApiWorkspaceCode(code: string | null) {
   _joinCode = code;
@@ -21,6 +22,10 @@ export function getApiWorkspaceCode(): string | null {
   return _joinCode;
 }
 
+export function setAuthTokenGetter(getter: (() => Promise<string | null>) | null) {
+  _authTokenGetter = getter;
+}
+
 async function request<T>(
   method: string,
   path: string,
@@ -28,6 +33,14 @@ async function request<T>(
 ): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (_joinCode) headers["X-Workspace-Code"] = _joinCode;
+  if (_authTokenGetter) {
+    try {
+      const token = await _authTokenGetter();
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+    } catch {
+      // ignore — proceed without token
+    }
+  }
 
   const res = await fetch(`${BASE}${path}`, {
     method,
@@ -53,6 +66,10 @@ export const api = {
       request<WorkspaceInfo>("GET", `/workspace/by-code/${encodeURIComponent(code.trim().toUpperCase())}`),
     setup: (name: string, email: string, password: string) =>
       request<{ ok: boolean; joinCode: string }>("POST", "/workspace/setup", { name, email, password }),
+    setupGoogle: (name: string, email?: string) =>
+      request<{ ok: boolean; joinCode: string }>("POST", "/workspace/setup-google", { name, email }),
+    my: () =>
+      request<WorkspaceInfo>("GET", "/workspace/my"),
     subscriptionSeen: () =>
       request<{ ok: boolean }>("POST", "/workspace/subscription-seen"),
     loginBoss: (email: string, password: string) =>

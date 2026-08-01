@@ -1,7 +1,11 @@
+import { useSSO } from "@clerk/expo";
 import { Feather } from "@expo/vector-icons";
+import * as AuthSession from "expo-auth-session";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import * as WebBrowser from "expo-web-browser";
+import React, { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Platform,
   Pressable,
   StyleSheet,
@@ -16,13 +20,27 @@ import { TextField } from "@/components/TextField";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 
+// Preload the browser on Android to reduce OAuth round-trip latency
+function useWarmUpBrowser() {
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    void WebBrowser.warmUpAsync();
+    return () => { void WebBrowser.coolDownAsync(); };
+  }, []);
+}
+
+WebBrowser.maybeCompleteAuthSession();
+
 type Mode = "boss" | "chef";
 
 export default function Login() {
+  useWarmUpBrowser();
+
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { loginBoss, loginChef } = useApp();
+  const { loginChef, loginWithGoogle } = useApp();
+  const { startSSOFlow } = useSSO();
 
   const [mode, setMode] = useState<Mode>("boss");
   const [email, setEmail] = useState("");
@@ -30,16 +48,40 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
+  const handleGoogleSignIn = useCallback(async () => {
     setError(null);
     setLoading(true);
     try {
-      const ok =
-        mode === "boss"
-          ? await loginBoss(email, password)
-          : await loginChef(email, password);
+      const { createdSessionId, setActive } = await startSSOFlow({
+        strategy: "oauth_google",
+        redirectUrl: AuthSession.makeRedirectUri(),
+      });
+
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId });
+        // Token is now set via ClerkTokenSync — look up (or prompt to create) workspace
+        const result = await loginWithGoogle();
+        if (result === "no_workspace") {
+          router.replace("/setup");
+        } else {
+          router.replace("/boss");
+        }
+      }
+    } catch (err: unknown) {
+      const msg = (err as Error)?.message ?? "Google sign-in failed. Try again.";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [startSSOFlow, loginWithGoogle, router]);
+
+  const handleChefLogin = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const ok = await loginChef(email, password);
       if (!ok) return setError("Email or password is incorrect.");
-      router.replace(mode === "boss" ? "/boss" : "/chef");
+      router.replace("/chef");
     } finally {
       setLoading(false);
     }
@@ -77,6 +119,7 @@ export default function Login() {
           Sign in to your workshop
         </Text>
 
+        {/* Tab switcher */}
         <View
           style={[
             styles.tabs,
@@ -120,59 +163,89 @@ export default function Login() {
           })}
         </View>
 
-        <View style={{ gap: 14, marginTop: 24 }}>
-          <TextField
-            label="Email"
-            placeholder="you@workshop.com"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-          <TextField
-            label="Password"
-            placeholder="••••••"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            errorText={error ?? undefined}
-          />
-        </View>
-
-        <Button
-          label="Sign in"
-          icon="log-in"
-          onPress={handleLogin}
-          loading={loading}
-          fullWidth
-          size="lg"
-          style={{ marginTop: 22 }}
-        />
-
+        {/* ── Manager tab: Google SSO ── */}
         {mode === "boss" ? (
-          <Pressable
-            onPress={() => router.push("/reset")}
-            hitSlop={10}
-            style={{ marginTop: 16, alignItems: "center" }}
-          >
-            <Text style={{ color: colors.primary, fontFamily: "Inter_500Medium", fontSize: 13 }}>
-              Forgot password?
+          <View style={{ marginTop: 28, gap: 16 }}>
+            <Pressable
+              onPress={handleGoogleSignIn}
+              disabled={loading}
+              style={[
+                styles.googleBtn,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  opacity: loading ? 0.7 : 1,
+                },
+              ]}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <>
+                  {/* Google "G" logo in brand colours */}
+                  <View style={styles.googleLogo}>
+                    <Text style={styles.googleLogoText}>G</Text>
+                  </View>
+                  <Text style={[styles.googleBtnText, { color: colors.foreground }]}>
+                    Continue with Google
+                  </Text>
+                </>
+              )}
+            </Pressable>
+
+            {error ? (
+              <Text style={[styles.errorText, { color: colors.destructive }]}>
+                {error}
+              </Text>
+            ) : null}
+
+            <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+              Each company uses their own Google account. Your workspace and all
+              production data are tied to that account.
             </Text>
-          </Pressable>
+          </View>
         ) : (
-          <Text
-            style={{
-              color: colors.mutedForeground,
-              fontFamily: "Inter_400Regular",
-              fontSize: 12,
-              textAlign: "center",
-              marginTop: 16,
-              lineHeight: 18,
-            }}
-          >
-            Your password was assigned by the manager when your account was created.
-            Ask them if you don't remember it.
-          </Text>
+          /* ── Operator tab: email + password ── */
+          <View style={{ marginTop: 24, gap: 14 }}>
+            <TextField
+              label="Email"
+              placeholder="you@workshop.com"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            <TextField
+              label="Password"
+              placeholder="••••••"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              errorText={error ?? undefined}
+            />
+
+            <Button
+              label="Sign in"
+              icon="log-in"
+              onPress={handleChefLogin}
+              loading={loading}
+              fullWidth
+              size="lg"
+            />
+
+            <Text
+              style={{
+                color: colors.mutedForeground,
+                fontFamily: "Inter_400Regular",
+                fontSize: 12,
+                textAlign: "center",
+                lineHeight: 18,
+              }}
+            >
+              Your password was assigned by the manager when your account was
+              created. Ask them if you don't remember it.
+            </Text>
+          </View>
         )}
       </KeyboardAwareScrollView>
     </View>
@@ -224,5 +297,46 @@ const styles = StyleSheet.create({
     shadowColor: "#0f172a",
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 1 },
+  },
+  googleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    minHeight: 52,
+  },
+  googleLogo: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  googleLogoText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 13,
+    color: "#4285F4",
+  },
+  googleBtnText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 15,
+  },
+  errorText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    textAlign: "center",
+  },
+  hint: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    textAlign: "center",
+    lineHeight: 18,
   },
 });

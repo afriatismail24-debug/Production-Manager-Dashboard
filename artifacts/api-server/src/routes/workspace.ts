@@ -1,9 +1,67 @@
 import { Router } from "express";
+import { getAuth } from "@clerk/express";
 import { isEmailConfigured, sendPasswordReset } from "../lib/email.js";
 import { makeId, pool } from "../lib/db.js";
 import { generateJoinCode, getJoinCode } from "../lib/workspace.js";
 
 const router = Router();
+
+// Middleware: require a valid Clerk JWT (used for Google-authenticated boss routes)
+function requireClerkAuth(req: any, res: any, next: any) {
+  const auth = getAuth(req);
+  if (!auth?.userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  req.clerkUserId = auth.userId;
+  next();
+}
+
+// ─── Google-auth boss routes ────────────────────────────────────────────────
+
+// GET /workspace/my — look up workspace tied to the authenticated Google account
+router.get("/workspace/my", requireClerkAuth, async (req: any, res) => {
+  const { rows } = await pool.query(
+    "SELECT join_code, boss_name, boss_email, subscription_seen FROM workspaces WHERE clerk_user_id = $1",
+    [req.clerkUserId],
+  );
+  if (rows.length === 0) return res.status(404).json({ error: "No workspace found for this account" });
+  const w = rows[0];
+  return res.json({
+    exists: true,
+    joinCode: w.join_code,
+    bossName: w.boss_name,
+    bossEmail: w.boss_email,
+    subscriptionSeen: w.subscription_seen,
+  });
+});
+
+// POST /workspace/setup-google — create workspace for a Google-signed-in manager
+router.post("/workspace/setup-google", requireClerkAuth, async (req: any, res) => {
+  const { name, email } = req.body as { name: string; email?: string };
+  if (!name?.trim()) return res.status(400).json({ error: "Workshop name is required" });
+
+  // Idempotent — return existing workspace if already set up
+  const { rows: existing } = await pool.query(
+    "SELECT join_code FROM workspaces WHERE clerk_user_id = $1",
+    [req.clerkUserId],
+  );
+  if (existing.length > 0) {
+    return res.json({ ok: true, joinCode: existing[0].join_code });
+  }
+
+  const joinCode = generateJoinCode();
+  const workspaceId = `ws_${joinCode}`;
+  const bossEmail = email?.trim().toLowerCase() || `${req.clerkUserId}@google.auth`;
+
+  await pool.query(
+    `INSERT INTO workspaces (id, join_code, boss_name, boss_email, boss_password, clerk_user_id, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [workspaceId, joinCode, name.trim(), bossEmail, "", req.clerkUserId, Date.now()],
+  );
+  return res.json({ ok: true, joinCode });
+});
+
+// ─── Existing workspace routes (unchanged) ──────────────────────────────────
 
 router.get("/workspace/by-code/:code", async (req, res) => {
   const code = req.params.code.trim().toUpperCase();

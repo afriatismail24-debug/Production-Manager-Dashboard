@@ -1,7 +1,8 @@
+import { useUser } from "@clerk/expo";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Platform,
   StyleSheet,
@@ -20,25 +21,30 @@ export default function Setup() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { setupBoss } = useApp();
+  const { setupBossGoogle } = useApp();
+  const { user } = useUser();
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
+  // Pre-fill manager name from Google profile
+  const googleName = user?.fullName ?? user?.firstName ?? "";
+  const googleEmail = user?.primaryEmailAddress?.emailAddress ?? "";
+
+  const [workshopName, setWorkshopName] = useState("");
+  const [managerName, setManagerName] = useState(googleName);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Sync name once user profile loads
+  useEffect(() => {
+    if (googleName && !managerName) setManagerName(googleName);
+  }, [googleName]);
+
   const handleCreate = async () => {
     setError(null);
-    if (!name.trim()) return setError("Please enter your name.");
-    if (!email.trim() || !email.includes("@"))
-      return setError("Enter a valid email.");
-    if (password.length < 4) return setError("Password must be 4+ characters.");
-    if (password !== confirm) return setError("Passwords do not match.");
+    if (!workshopName.trim()) return setError("Please enter your workshop or company name.");
+    if (!managerName.trim()) return setError("Please enter your name.");
     setLoading(true);
     try {
-      await setupBoss(name.trim(), email.trim(), password);
+      await setupBossGoogle(workshopName.trim(), managerName.trim(), googleEmail);
       router.replace("/subscription");
     } catch (err: unknown) {
       setError((err as Error).message ?? "Setup failed. Try again.");
@@ -59,10 +65,13 @@ export default function Setup() {
         <View style={styles.heroIcon}>
           <Feather name="scissors" size={28} color="#7c3aed" />
         </View>
-        <Text style={styles.heroTitle}>Welcome to StitchTrack</Text>
+        <Text style={styles.heroTitle}>Set up your workspace</Text>
         <Text style={styles.heroSub}>
-          Create a workspace for your sewing workshop. After setup, you'll get a join
-          code — share it with your team so they can connect from their devices.
+          You're signed in with Google as{" "}
+          <Text style={{ color: "#f97316", fontFamily: "Inter_600SemiBold" }}>
+            {googleEmail || "your Google account"}
+          </Text>
+          . Give your workshop a name and your operators can join with a code.
         </Text>
       </LinearGradient>
 
@@ -76,39 +85,24 @@ export default function Setup() {
       >
         <View style={{ gap: 14 }}>
           <TextField
-            label="Your name"
-            placeholder="e.g. Jordan Pierce"
-            value={name}
-            onChangeText={setName}
+            label="Workshop / company name"
+            placeholder="e.g. Sunrise Garments"
+            value={workshopName}
+            onChangeText={setWorkshopName}
             autoCapitalize="words"
           />
           <TextField
-            label="Email"
-            placeholder="manager@workshop.com"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-          <TextField
-            label="Choose a password"
-            placeholder="At least 4 characters"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-          <TextField
-            label="Confirm password"
-            placeholder="Re-enter password"
-            value={confirm}
-            onChangeText={setConfirm}
-            secureTextEntry
+            label="Your name"
+            placeholder="e.g. Jordan Pierce"
+            value={managerName}
+            onChangeText={setManagerName}
+            autoCapitalize="words"
             errorText={error ?? undefined}
           />
         </View>
 
         <Button
-          label="Create manager account"
+          label="Create workspace"
           icon="arrow-right"
           onPress={handleCreate}
           loading={loading}
@@ -118,8 +112,8 @@ export default function Setup() {
         />
 
         <Text style={[styles.tip, { color: colors.mutedForeground }]}>
-          Tip: operator accounts will be created later from your dashboard with
-          auto-generated passwords.
+          Your workspace is linked to your Google account. Only you can sign in
+          as manager — operators join via the 6-letter code you'll share with them.
         </Text>
       </KeyboardAwareScrollView>
     </View>
@@ -161,5 +155,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "center",
     marginTop: 16,
+    lineHeight: 18,
   },
 });

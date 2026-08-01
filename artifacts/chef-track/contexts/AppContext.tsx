@@ -57,6 +57,8 @@ interface AppContextValue {
   calls: CallData[];
 
   setupBoss: (name: string, email: string, password: string) => Promise<void>;
+  setupBossGoogle: (workshopName: string, managerName: string, email: string) => Promise<void>;
+  loginWithGoogle: () => Promise<"ok" | "no_workspace">;
   joinWorkspace: (code: string, inviteToken?: string) => Promise<WorkspaceJoinResult>;
   markSubscriptionSeen: () => Promise<void>;
   loginBoss: (email: string, password: string) => Promise<boolean>;
@@ -239,6 +241,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const s: Session = { role: "boss", userId: "boss", bossName: name, bossEmail: email };
     setSession(s);
     await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(s));
+  }, []);
+
+  // Google-auth setup: creates a workspace linked to the Clerk user ID
+  const setupBossGoogle = useCallback(async (workshopName: string, managerName: string, email: string) => {
+    const r = await api.workspace.setupGoogle(workshopName, email);
+    setApiWorkspaceCode(r.joinCode);
+    await AsyncStorage.setItem(JOIN_CODE_KEY, r.joinCode);
+    setJoinCode(r.joinCode);
+    setBoss({ name: managerName, email });
+    const s: Session = { role: "boss", userId: "boss", bossName: managerName, bossEmail: email };
+    setSession(s);
+    await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(s));
+  }, []);
+
+  // Google-auth login: finds the workspace associated with the signed-in Google account
+  const loginWithGoogle = useCallback(async (): Promise<"ok" | "no_workspace"> => {
+    try {
+      const info = await api.workspace.my();
+      setApiWorkspaceCode(info.joinCode);
+      await AsyncStorage.setItem(JOIN_CODE_KEY, info.joinCode);
+      setJoinCode(info.joinCode);
+      setBoss({ name: info.bossName ?? "", email: info.bossEmail ?? "" });
+      setSubscriptionSeen(info.subscriptionSeen ?? false);
+      const s: Session = { role: "boss", userId: "boss", bossName: info.bossName, bossEmail: info.bossEmail };
+      setSession(s);
+      await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(s));
+      return "ok";
+    } catch (err: unknown) {
+      const msg = (err as Error)?.message ?? "";
+      if (msg.includes("No workspace") || msg.includes("404")) return "no_workspace";
+      throw err;
+    }
   }, []);
 
   const joinWorkspace = useCallback(async (code: string, inviteToken?: string): Promise<WorkspaceJoinResult> => {
@@ -448,7 +482,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       loaded, isOnline, joinCode, boss, subscriptionSeen, session,
       chefs: syncData.chefs, workSessions: syncData.workSessions, productions: syncData.productions,
       problems: syncData.problems, objectives: syncData.objectives, reminders: syncData.reminders, calls: syncData.calls,
-      setupBoss, joinWorkspace, markSubscriptionSeen, loginBoss, loginChef, logout, leaveWorkspace,
+      setupBoss, setupBossGoogle, loginWithGoogle, joinWorkspace, markSubscriptionSeen, loginBoss, loginChef, logout, leaveWorkspace,
       addChef, removeChef, setChefTarget, addObjective, removeObjective,
       checkIn, checkOut, currentWorkSession,
       submitProduction, updateProduction, deleteProduction,

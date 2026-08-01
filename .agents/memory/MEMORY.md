@@ -1,0 +1,1 @@
+- [Google Auth / Clerk integration](clerk-google-auth.md) — Clerk Google SSO added for managers; chefs keep email/password; workspaces scoped by clerk_user_id.

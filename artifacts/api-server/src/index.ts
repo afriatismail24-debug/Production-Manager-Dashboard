@@ -6,6 +6,8 @@ import { pool } from "./lib/db.js";
 async function migrate() {
   try {
     await pool.query(`ALTER TABLE chefs ADD COLUMN IF NOT EXISTS daily_target INTEGER DEFAULT NULL`);
+    await pool.query(`ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS clerk_user_id TEXT DEFAULT NULL`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS workspaces_clerk_user_id_idx ON workspaces (clerk_user_id)`);
     logger.info("DB migrations applied");
   } catch (err) {
     logger.warn({ err }, "Migration warning (non-fatal)");
