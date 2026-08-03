@@ -371,7 +371,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [doSync]);
 
   const checkIn = useCallback(async (userId: string, role: Role) => {
-    await api.sessions.checkIn(userId, role);
+    const name = sessionRef.current?.chefName ?? sessionRef.current?.bossName;
+    await api.sessions.checkIn(userId, role, name);
     await doSync();
   }, [doSync]);
 

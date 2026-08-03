@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { makeId, pool } from "../lib/db.js";
 import { getJoinCode } from "../lib/workspace.js";
+import { sendPush } from "../lib/push.js";
 
 const router = Router();
 
@@ -16,6 +17,23 @@ router.post("/reminders", async (req, res) => {
     "INSERT INTO reminders (id, workspace_id, join_code, message, created_at, seen_by) VALUES ($1,$2,$3,$4,$5,'[]')",
     [id, ws[0].id, code, message || "Please submit your production.", now],
   );
+
+  // Push notification to all operators in this workspace (fire-and-forget)
+  pool.query(
+    "SELECT token FROM push_tokens WHERE join_code=$1 AND role='chef'",
+    [code],
+  ).then(({ rows: tokens }) => {
+    if (tokens.length > 0) {
+      sendPush(tokens.map((t) => ({
+        to: t.token,
+        title: "📋 Reminder from manager",
+        body: message || "Please submit your production.",
+        data: { screen: "chef", type: "reminder" },
+        sound: "default" as const,
+      })));
+    }
+  }).catch(() => {/* non-fatal */});
+
   return res.json({ id, message, createdAt: now });
 });
 

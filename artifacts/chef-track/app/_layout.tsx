@@ -12,8 +12,9 @@ import { Feather } from "@expo/vector-icons";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
-import { View } from "react-native";
+import * as Notifications from "expo-notifications";
+import React, { useEffect, useRef } from "react";
+import { Platform, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -21,11 +22,18 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { NetworkBanner } from "@/components/NetworkBanner";
 import { ToastProvider } from "@/components/ToastNotification";
-import { AppProvider } from "@/contexts/AppContext";
+import { AppProvider, useApp } from "@/contexts/AppContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
-import { setAuthTokenGetter } from "@/lib/api";
+import { api, setAuthTokenGetter } from "@/lib/api";
+import { configureNotifications, registerForPushNotificationsAsync } from "@/lib/notifications";
 
 SplashScreen.preventAutoHideAsync();
+
+// Configure how notifications appear when the app is in the foreground.
+// Must be called before any component mounts.
+if (Platform.OS !== "web") {
+  configureNotifications();
+}
 
 const queryClient = new QueryClient();
 
@@ -43,6 +51,39 @@ function ClerkTokenSync() {
       setAuthTokenGetter(null);
     }
   }, [isSignedIn, getToken]);
+  return null;
+}
+
+// Registers the device for push notifications once the user is logged in
+// and keeps the token fresh on the server.
+function PushTokenSync() {
+  const { session } = useApp();
+  const registeredRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!session || Platform.OS === "web") return;
+
+    registerForPushNotificationsAsync().then((token) => {
+      if (!token) return;
+      if (registeredRef.current === token) return; // already sent this token
+      registeredRef.current = token;
+
+      const userId = session.chefId ?? "boss";
+      const role = session.role;
+      api.notifications.savePushToken(userId, role, token).catch(() => {/* non-fatal */});
+    });
+  }, [session]);
+
+  // Listen for incoming notifications while the app is in the foreground
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    const sub = Notifications.addNotificationReceivedListener((_notification) => {
+      // Notification is already displayed by the handler set in configureNotifications.
+      // Additional in-app handling can be added here if needed.
+    });
+    return () => sub.remove();
+  }, []);
+
   return null;
 }
 
@@ -117,6 +158,7 @@ export default function RootLayout() {
                     <ClerkTokenSync />
                     <AppProvider>
                       <ToastProvider>
+                        <PushTokenSync />
                         <View style={{ flex: 1 }}>
                           <NetworkBanner />
                           <RootLayoutNav />

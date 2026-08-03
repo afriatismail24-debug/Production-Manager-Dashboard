@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { makeId, pool } from "../lib/db.js";
 import { getJoinCode } from "../lib/workspace.js";
+import { sendPushOne } from "../lib/push.js";
 
 const EDIT_WINDOW = 15 * 60 * 1000;
 const router = Router();
@@ -41,6 +42,26 @@ router.post("/problems", async (req, res) => {
     [id, ws[0].id, code, chefId, chefName, type, note||"", stoppedAt, resumedAt, now, now + EDIT_WINDOW],
   );
   const { rows } = await pool.query("SELECT * FROM problems WHERE id=$1", [id]);
+
+  // Push notification to manager (fire-and-forget)
+  pool.query(
+    "SELECT token FROM push_tokens WHERE join_code=$1 AND role='boss' LIMIT 1",
+    [code],
+  ).then(({ rows: tokens }) => {
+    if (tokens.length > 0) {
+      const label = type === "machine" ? "🔧 Machine issue" :
+                    type === "material" ? "📦 Material issue" :
+                    type === "personal" ? "🙋 Personal issue" : "⚠️ Problem";
+      sendPushOne({
+        to: tokens[0].token,
+        title: `${label} reported`,
+        body: `${chefName}${note ? ": " + note : ""}`,
+        data: { screen: "boss", type: "problem" },
+        sound: "default",
+      });
+    }
+  }).catch(() => {/* non-fatal */});
+
   return res.json(mapRow(rows[0]));
 });
 

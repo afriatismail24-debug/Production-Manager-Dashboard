@@ -1,13 +1,14 @@
 import { Router } from "express";
 import { makeId, pool } from "../lib/db.js";
 import { getJoinCode } from "../lib/workspace.js";
+import { sendPushOne } from "../lib/push.js";
 
 const router = Router();
 
 router.post("/sessions/checkin", async (req, res) => {
   const code = getJoinCode(req);
   if (!code) return res.status(400).json({ error: "Missing workspace code" });
-  const { userId, role } = req.body as { userId: string; role: string };
+  const { userId, role, name } = req.body as { userId: string; role: string; name?: string };
 
   const { rows: ws } = await pool.query("SELECT id FROM workspaces WHERE join_code=$1", [code]);
   if (ws.length === 0) return res.status(404).json({ error: "Workspace not found" });
@@ -23,6 +24,25 @@ router.post("/sessions/checkin", async (req, res) => {
     "INSERT INTO work_sessions (id, workspace_id, join_code, user_id, role, check_in_at) VALUES ($1,$2,$3,$4,$5,$6)",
     [id, ws[0].id, code, userId, role, Date.now()],
   );
+
+  // Notify manager when an operator checks in (fire-and-forget)
+  if (role === "chef") {
+    pool.query(
+      "SELECT token FROM push_tokens WHERE join_code=$1 AND role='boss' LIMIT 1",
+      [code],
+    ).then(({ rows: tokens }) => {
+      if (tokens.length > 0) {
+        sendPushOne({
+          to: tokens[0].token,
+          title: "Operator checked in",
+          body: name ? `${name} has started their shift` : "An operator has started their shift",
+          data: { screen: "boss", type: "checkin" },
+          sound: "default",
+        });
+      }
+    }).catch(() => {/* non-fatal */});
+  }
+
   return res.json({ id, alreadyCheckedIn: false });
 });
 

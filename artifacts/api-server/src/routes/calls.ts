@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { makeId, pool } from "../lib/db.js";
 import { getJoinCode } from "../lib/workspace.js";
+import { sendPushOne } from "../lib/push.js";
 
 const router = Router();
 
@@ -15,6 +16,23 @@ router.post("/calls", async (req, res) => {
     "INSERT INTO call_requests (id, workspace_id, join_code, chef_id, chef_name, created_at, seen) VALUES ($1,$2,$3,$4,$5,$6,false)",
     [id, ws[0].id, code, chefId, chefName, Date.now()],
   );
+
+  // Push notification to the specific operator being called (fire-and-forget)
+  pool.query(
+    "SELECT token FROM push_tokens WHERE join_code=$1 AND user_id=$2 LIMIT 1",
+    [code, chefId],
+  ).then(({ rows: tokens }) => {
+    if (tokens.length > 0) {
+      sendPushOne({
+        to: tokens[0].token,
+        title: "📞 Manager is calling you!",
+        body: "Please come to the office now.",
+        data: { screen: "chef", type: "call" },
+        sound: "default",
+      });
+    }
+  }).catch(() => {/* non-fatal */});
+
   return res.json({ ok: true, id });
 });
 

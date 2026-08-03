@@ -10,6 +10,7 @@ import remindersRouter from "./reminders.js";
 import callsRouter from "./calls.js";
 import syncRouter from "./sync.js";
 import invitesRouter from "./invites.js";
+import notificationsRouter from "./notifications.js";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(objectivesRouter);
 router.use(remindersRouter);
 router.use(callsRouter);
 router.use(syncRouter);
+router.use(notificationsRouter);
 
 export default router;

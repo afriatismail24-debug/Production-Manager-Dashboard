@@ -61,6 +61,10 @@ async function request<T>(
 }
 
 export const api = {
+  notifications: {
+    savePushToken: (userId: string, role: string, token: string) =>
+      request<{ ok: boolean }>("POST", "/notifications/push-token", { userId, role, token }),
+  },
   workspace: {
     byCode: (code: string) =>
       request<WorkspaceInfo>("GET", `/workspace/by-code/${encodeURIComponent(code.trim().toUpperCase())}`),
@@ -88,8 +92,8 @@ export const api = {
     setTarget: (id: string, target: number | null) => request<{ ok: boolean }>("PUT", `/chefs/${id}/target`, { target }),
   },
   sessions: {
-    checkIn: (userId: string, role: string) =>
-      request<{ id: string }>("POST", "/sessions/checkin", { userId, role }),
+    checkIn: (userId: string, role: string, name?: string) =>
+      request<{ id: string }>("POST", "/sessions/checkin", { userId, role, name }),
     checkOut: (userId: string) =>
       request<WorkSessionData>("POST", "/sessions/checkout", { userId }),
     current: (userId: string) =>
