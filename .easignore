@@ -1,0 +1,15 @@
+node_modules
+.expo
+.expo-shared
+dist
+tmp
+out-tsc
+*.tsbuildinfo
+.cache
+.local
+.env
+artifacts/mockup-sandbox
+artifacts/api-server
+attached_assets
+.canvas
+.agents

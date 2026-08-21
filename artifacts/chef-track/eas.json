@@ -1,17 +1,20 @@
 {
   "cli": {
-    "version": ">= 7.0.0"
+    "version": ">= 7.0.0",
+    "requireCommit": false
   },
   "build": {
     "preview": {
       "android": {
         "buildType": "apk"
-      }
+      },
+      "monorepo": true
     },
     "production": {
       "android": {
         "buildType": "app-bundle"
-      }
+      },
+      "monorepo": true
     }
   },
   "submit": {

@@ -13,7 +13,6 @@ export default function NetworkChangedScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { acceptNetworkChange } = useApp();
   const [loading, setLoading] = useState(false);
 
   const webTop = Platform.OS === "web" ? 67 : 0;
@@ -21,7 +20,6 @@ export default function NetworkChangedScreen() {
 
   const handleContinue = async () => {
     setLoading(true);
-    await acceptNetworkChange();
     router.replace("/");
   };
 

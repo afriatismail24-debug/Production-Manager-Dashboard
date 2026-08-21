@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import type { Role } from "@/types";
 
 const BASE = (() => {
   // On web (browser), use the current page origin so relative routing works
@@ -175,7 +176,7 @@ export interface ChefData {
 export interface WorkSessionData {
   id: string;
   userId: string;
-  role: string;
+  role: Role;
   checkInAt: number;
   checkOutAt: number | null;
 }
